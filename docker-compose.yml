@@ -1,0 +1,88 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: banking_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: banking
+      POSTGRES_PASSWORD: banking_pass
+      POSTGRES_DB: banking_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U banking -d banking_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  tigerbeetle-init:
+    image: ghcr.io/tigerbeetle/tigerbeetle:latest
+    container_name: banking_tigerbeetle_init
+    security_opt:
+      - seccomp:unconfined
+    volumes:
+      - tbdata:/data
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "if [ ! -f /data/0_0.tigerbeetle ]; then
+        ./tigerbeetle format --cluster=0 --replica=0 --replica-count=1 --development /data/0_0.tigerbeetle;
+      else
+        echo 'TigerBeetle data file already exists, skipping format.';
+      fi"
+
+  tigerbeetle:
+    image: ghcr.io/tigerbeetle/tigerbeetle:latest
+    container_name: banking_tigerbeetle
+    restart: unless-stopped
+    security_opt:
+      - seccomp:unconfined
+    cap_add:
+      - IPC_LOCK
+    depends_on:
+      tigerbeetle-init:
+        condition: service_completed_successfully
+    ports:
+      - "3000:3000"
+    volumes:
+      - tbdata:/data
+    command: ["start", "--addresses=0.0.0.0:3000", "--development", "/data/0_0.tigerbeetle"]
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: banking_backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      tigerbeetle:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgres://banking:banking_pass@postgres:5432/banking_db?sslmode=disable
+      TIGERBEETLE_ADDRESS: tigerbeetle:3000
+      TIGERBEETLE_CLUSTER_ID: "0"
+      JWT_SECRET: change_me_in_production
+      PORT: "8080"
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: banking_frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: http://localhost:8080
+    ports:
+      - "5173:5173"
+
+volumes:
+  pgdata:
+  tbdata:
