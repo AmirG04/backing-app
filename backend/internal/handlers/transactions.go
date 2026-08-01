@@ -48,8 +48,8 @@ func (h *Handler) Withdraw(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.TB.Withdraw(accountID, req.Amount); err != nil {
 		// TigerBeetle rechaza automaticamente si no hay fondos suficientes
-		// (result: exceeds_credits), gracias al flag DebitsMustNotExceedCredits.
-		if strings.Contains(err.Error(), "exceeds_credits") {
+		// (result: ExceedsCredits), gracias al flag DebitsMustNotExceedCredits.
+		if strings.Contains(err.Error(), "ExceedsCredits") {
 			writeError(w, http.StatusUnprocessableEntity, "fondos insuficientes")
 			return
 		}
@@ -97,7 +97,7 @@ func (h *Handler) Transfer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.TB.Transfer(fromAccountID, toAccountID, req.Amount); err != nil {
-		if strings.Contains(err.Error(), "exceeds_credits") {
+		if strings.Contains(err.Error(), "ExceedsCredits") {
 			writeError(w, http.StatusUnprocessableEntity, "fondos insuficientes")
 			return
 		}
