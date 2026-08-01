@@ -18,7 +18,7 @@ services:
       retries: 10
 
   tigerbeetle-init:
-    image: ghcr.io/tigerbeetle/tigerbeetle:latest
+    image: ghcr.io/tigerbeetle/tigerbeetle:0.17.7
     container_name: banking_tigerbeetle_init
     security_opt:
       - seccomp:unconfined
@@ -33,7 +33,7 @@ services:
       fi"
 
   tigerbeetle:
-    image: ghcr.io/tigerbeetle/tigerbeetle:latest
+    image: ghcr.io/tigerbeetle/tigerbeetle:0.17.7
     container_name: banking_tigerbeetle
     restart: unless-stopped
     security_opt:
