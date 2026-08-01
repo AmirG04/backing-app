@@ -1,3 +1,10 @@
+networks:
+  banking_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -16,6 +23,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - banking_net
 
   tigerbeetle-init:
     image: ghcr.io/tigerbeetle/tigerbeetle:0.17.7
@@ -31,6 +40,8 @@ services:
       else
         echo 'TigerBeetle data file already exists, skipping format.';
       fi"
+    networks:
+      - banking_net
 
   tigerbeetle:
     image: ghcr.io/tigerbeetle/tigerbeetle:0.17.7
@@ -48,6 +59,9 @@ services:
     volumes:
       - tbdata:/data
     command: ["start", "--addresses=0.0.0.0:3000", "--development", "/data/0_0.tigerbeetle"]
+    networks:
+      banking_net:
+        ipv4_address: 172.28.0.10
 
   backend:
     build:
@@ -62,13 +76,15 @@ services:
         condition: service_started
     environment:
       DATABASE_URL: postgres://banking:banking_pass@postgres:5432/banking_db?sslmode=disable
-      TIGERBEETLE_ADDRESS: tigerbeetle:3000
+      TIGERBEETLE_ADDRESS: 172.28.0.10:3000
       TIGERBEETLE_CLUSTER_ID: "0"
       JWT_SECRET: change_me_in_production
       PORT: "8080"
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     ports:
       - "8080:8080"
+    networks:
+      - banking_net
 
   frontend:
     build:
@@ -82,6 +98,8 @@ services:
       VITE_API_URL: http://localhost:8080
     ports:
       - "5173:5173"
+    networks:
+      - banking_net
 
 volumes:
   pgdata:
