@@ -2,6 +2,14 @@ import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 
+const TYPE_LABELS = {
+  deposit: 'Depósito',
+  withdrawal: 'Retiro',
+  transfer_sent: 'Transferencia enviada',
+  transfer_received: 'Transferencia recibida',
+  unknown: 'Movimiento',
+}
+
 export default function History() {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -40,13 +48,22 @@ export default function History() {
                 <li key={t.id} className="py-3 flex justify-between text-sm">
                   <div>
                     <p className="font-medium text-slate-800">
-                      {t.debit_account_id === t.credit_account_id
-                        ? 'Movimiento'
-                        : 'Transferencia'}
+                      {TYPE_LABELS[t.type] || t.type}
                     </p>
-                    <p className="text-xs text-slate-400">{t.timestamp}</p>
+                    <p className="text-xs text-slate-400">
+                      {new Date(t.timestamp).toLocaleString()}
+                    </p>
                   </div>
-                  <span className="font-semibold text-slate-800">{t.amount}</span>
+                  <span
+                    className={`font-semibold ${
+                      t.type === 'deposit' || t.type === 'transfer_received'
+                        ? 'text-emerald-600'
+                        : 'text-slate-800'
+                    }`}
+                  >
+                    {t.type === 'deposit' || t.type === 'transfer_received' ? '+' : '-'}
+                    {t.amount}
+                  </span>
                 </li>
               ))}
             </ul>

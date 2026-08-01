@@ -45,6 +45,17 @@ type BalanceResponse struct {
 	Balance   int64  `json:"balance"`
 }
 
+// TransactionHistoryItem es una version legible de una transferencia de
+// TigerBeetle, pensada para el frontend (en vez de exponer los bytes
+// crudos de Uint128 que usa el SDK internamente).
+type TransactionHistoryItem struct {
+	ID                    string `json:"id"`
+	Type                  string `json:"type"` // deposit | withdrawal | transfer_sent | transfer_received
+	Amount                int64  `json:"amount"`
+	CounterpartyAccountID string `json:"counterparty_account_id,omitempty"`
+	Timestamp             string `json:"timestamp"` // RFC3339
+}
+
 type ErrorResponse struct {
 	Error string `json:"error"`
 }

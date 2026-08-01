@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"strings"
+	"time"
 
 	tbtypes "github.com/tigerbeetle/tigerbeetle-go/pkg/types"
 
+	"banking-app/backend/internal/db"
 	"banking-app/backend/internal/models"
 )
 
@@ -122,5 +124,38 @@ func (h *Handler) History(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, transfers)
+	bankAccountID := tbtypes.ToUint128(db.BankAccountID)
+
+	items := make([]models.TransactionHistoryItem, 0, len(transfers))
+	for _, t := range transfers {
+		amountBig := t.Amount.BigInt()
+
+		item := models.TransactionHistoryItem{
+			ID:        t.ID.String(),
+			Amount:    amountBig.Int64(),
+			Timestamp: time.Unix(0, int64(t.Timestamp)).UTC().Format(time.RFC3339),
+		}
+
+		debitIsBank := t.DebitAccountID == bankAccountID
+		creditIsBank := t.CreditAccountID == bankAccountID
+
+		switch {
+		case debitIsBank && !creditIsBank:
+			item.Type = "deposit"
+		case !debitIsBank && creditIsBank:
+			item.Type = "withdrawal"
+		case t.DebitAccountID == accountID:
+			item.Type = "transfer_sent"
+			item.CounterpartyAccountID = t.CreditAccountID.String()
+		case t.CreditAccountID == accountID:
+			item.Type = "transfer_received"
+			item.CounterpartyAccountID = t.DebitAccountID.String()
+		default:
+			item.Type = "unknown"
+		}
+
+		items = append(items, item)
+	}
+
+	writeJSON(w, http.StatusOK, items)
 }

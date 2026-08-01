@@ -167,8 +167,22 @@ export default function Dashboard() {
               <ul className="divide-y divide-slate-100">
                 {recent.map((t) => (
                   <li key={t.id} className="py-2 text-sm flex justify-between">
-                    <span className="text-slate-600">{t.code === 1 ? 'Movimiento' : 'Otro'}</span>
-                    <span className="font-medium text-slate-800">{t.amount}</span>
+                    <span className="text-slate-600">
+                      {t.type === 'deposit' && 'Depósito'}
+                      {t.type === 'withdrawal' && 'Retiro'}
+                      {t.type === 'transfer_sent' && 'Transferencia enviada'}
+                      {t.type === 'transfer_received' && 'Transferencia recibida'}
+                    </span>
+                    <span
+                      className={`font-medium ${
+                        t.type === 'deposit' || t.type === 'transfer_received'
+                          ? 'text-emerald-600'
+                          : 'text-slate-800'
+                      }`}
+                    >
+                      {t.type === 'deposit' || t.type === 'transfer_received' ? '+' : '-'}
+                      {t.amount}
+                    </span>
                   </li>
                 ))}
               </ul>
