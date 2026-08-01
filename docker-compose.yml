@@ -51,6 +51,10 @@ services:
       - seccomp:unconfined
     cap_add:
       - IPC_LOCK
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     depends_on:
       tigerbeetle-init:
         condition: service_completed_successfully
@@ -69,6 +73,14 @@ services:
       dockerfile: Dockerfile
     container_name: banking_backend
     restart: unless-stopped
+    security_opt:
+      - seccomp:unconfined
+    cap_add:
+      - IPC_LOCK
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
     depends_on:
       postgres:
         condition: service_healthy
