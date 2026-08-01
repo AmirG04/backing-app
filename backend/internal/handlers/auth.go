@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -39,6 +40,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	// 1. Crear cuenta financiera en TigerBeetle
 	tbAccountID, err := h.TB.CreateUserAccount()
 	if err != nil {
+		log.Printf("error creando cuenta tigerbeetle: %v", err)
 		writeError(w, http.StatusInternalServerError, "error creando cuenta bancaria")
 		return
 	}
@@ -59,6 +61,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusConflict, "el email ya esta registrado")
 			return
 		}
+		log.Printf("error creando usuario en postgres: %v", err)
 		writeError(w, http.StatusInternalServerError, "error creando usuario")
 		return
 	}

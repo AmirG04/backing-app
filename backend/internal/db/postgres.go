@@ -31,7 +31,7 @@ func Migrate(pool *pgxpool.Pool) error {
 		email TEXT UNIQUE NOT NULL,
 		password_hash TEXT NOT NULL,
 		full_name TEXT NOT NULL,
-		tigerbeetle_account_id NUMERIC(39,0) UNIQUE NOT NULL,
+		tigerbeetle_account_id TEXT UNIQUE NOT NULL,
 		created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 		updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 	);
