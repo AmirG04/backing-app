@@ -2,6 +2,42 @@ import React, { useState, useRef, useEffect } from 'react'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
+// Renderer de markdown minimo (sin dependencias externas): soporta
+// **negritas** y lineas de lista (numeradas o con "-"), que es lo unico
+// que el system prompt del asistente usa. Cualquier otro texto se
+// muestra tal cual, con saltos de linea respetados.
+function renderMarkdownLine(line, key) {
+  const parts = line.split(/(\*\*[^*]+\*\*)/g).filter(Boolean)
+  return (
+    <React.Fragment key={key}>
+      {parts.map((part, i) =>
+        part.startsWith('**') && part.endsWith('**') ? (
+          <strong key={i}>{part.slice(2, -2)}</strong>
+        ) : (
+          <React.Fragment key={i}>{part}</React.Fragment>
+        )
+      )}
+    </React.Fragment>
+  )
+}
+
+function ChatMessageContent({ text }) {
+  const lines = text.split('\n')
+  return (
+    <div className="space-y-0.5">
+      {lines.map((line, i) => {
+        const trimmed = line.trim()
+        const isListItem = /^(\d+\.|-)\s+/.test(trimmed)
+        return (
+          <div key={i} className={isListItem ? 'pl-1' : ''}>
+            {renderMarkdownLine(line, i)}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function ChatWidget({ onActionCompleted }) {
   const [messages, setMessages] = useState([
     {
@@ -43,7 +79,10 @@ export default function ChatWidget({ onActionCompleted }) {
         throw new Error(data.error || 'El chat aún no está disponible')
       }
 
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.reply }])
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: data.reply, needsConfirmation: data.requires_confirmation },
+      ])
       if (data.action_executed) {
         onActionCompleted?.()
       }
@@ -70,10 +109,12 @@ export default function ChatWidget({ onActionCompleted }) {
             className={`text-sm max-w-[85%] px-3 py-2 rounded-lg ${
               m.role === 'user'
                 ? 'bg-blue-600 text-white ml-auto'
+                : m.needsConfirmation
+                ? 'bg-amber-50 text-amber-800 border border-amber-200'
                 : 'bg-slate-100 text-slate-700'
             }`}
           >
-            {m.content}
+            <ChatMessageContent text={m.content} />
           </div>
         ))}
         {loading && <div className="text-xs text-slate-400">Escribiendo...</div>}
