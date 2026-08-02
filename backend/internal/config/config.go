@@ -8,7 +8,8 @@ type Config struct {
 	TigerBeetleAddress string
 	TigerBeetleCluster string
 	JWTSecret          string
-	AnthropicAPIKey    string
+	OpenRouterAPIKey   string
+	OpenRouterModel    string
 }
 
 func Load() Config {
@@ -18,7 +19,8 @@ func Load() Config {
 		TigerBeetleAddress: getEnv("TIGERBEETLE_ADDRESS", "127.0.0.1:3000"),
 		TigerBeetleCluster: getEnv("TIGERBEETLE_CLUSTER_ID", "0"),
 		JWTSecret:          getEnv("JWT_SECRET", "dev_secret_change_me"),
-		AnthropicAPIKey:    getEnv("ANTHROPIC_API_KEY", ""),
+		OpenRouterAPIKey:   getEnv("OPENROUTER_API_KEY", ""),
+		OpenRouterModel:    getEnv("OPENROUTER_MODEL", ""),
 	}
 }
 

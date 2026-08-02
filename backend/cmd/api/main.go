@@ -9,6 +9,7 @@ import (
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 
+	"banking-app/backend/internal/ai"
 	"banking-app/backend/internal/config"
 	"banking-app/backend/internal/db"
 	"banking-app/backend/internal/handlers"
@@ -43,7 +44,9 @@ func main() {
 		log.Fatalf("fatal: no se pudo inicializar la cuenta del banco: %v", err)
 	}
 
-	h := handlers.New(pgPool, tbClient, cfg.JWTSecret)
+	aiClient := ai.NewClient(cfg.OpenRouterAPIKey, cfg.OpenRouterModel)
+
+	h := handlers.New(pgPool, tbClient, cfg.JWTSecret, aiClient)
 
 	r := chi.NewRouter()
 	r.Use(chimiddleware.Logger)

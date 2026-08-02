@@ -59,3 +59,13 @@ type TransactionHistoryItem struct {
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
+
+type ChatRequest struct {
+	Message string `json:"message"`
+}
+
+type ChatResponse struct {
+	Reply             string `json:"reply"`
+	ActionExecuted    bool   `json:"action_executed"`
+	RequiresConfirmation bool `json:"requires_confirmation"`
+}
