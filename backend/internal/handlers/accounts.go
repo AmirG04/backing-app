@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	tbtypes "github.com/tigerbeetle/tigerbeetle-go/pkg/types"
 
@@ -36,10 +37,11 @@ func (h *Handler) GetAccountInfo(w http.ResponseWriter, r *http.Request) {
 		email       string
 		fullName    string
 		tbAccountID string
+		createdAt   time.Time
 	)
 	err := h.PG.QueryRow(r.Context(),
-		`SELECT email, full_name, tigerbeetle_account_id FROM users WHERE id = $1`, userID,
-	).Scan(&email, &fullName, &tbAccountID)
+		`SELECT email, full_name, tigerbeetle_account_id, created_at FROM users WHERE id = $1`, userID,
+	).Scan(&email, &fullName, &tbAccountID, &createdAt)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "usuario no encontrado")
 		return
@@ -50,6 +52,7 @@ func (h *Handler) GetAccountInfo(w http.ResponseWriter, r *http.Request) {
 		Email:                email,
 		FullName:             fullName,
 		TigerBeetleAccountID: tbAccountID,
+		CreatedAt:            createdAt,
 	})
 }
 
