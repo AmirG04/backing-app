@@ -10,6 +10,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 
+	"banking-app/backend/internal/db"
 	"banking-app/backend/internal/models"
 )
 
@@ -45,12 +46,12 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. Crear usuario en Postgres, referenciando la cuenta de TigerBeetle
+	// 2. Crear usuario en Postgres
 	var userID string
 	err = h.PG.QueryRow(r.Context(),
-		`INSERT INTO users (email, password_hash, full_name, tigerbeetle_account_id)
-		 VALUES ($1, $2, $3, $4) RETURNING id`,
-		req.Email, string(hash), req.FullName, tbAccountID.String(),
+		`INSERT INTO users (email, password_hash, full_name)
+		 VALUES ($1, $2, $3) RETURNING id`,
+		req.Email, string(hash), req.FullName,
 	).Scan(&userID)
 	if err != nil {
 		// Nota: si esto falla, la cuenta en TigerBeetle ya quedo creada
@@ -66,6 +67,36 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 3. Crear la cuenta principal del usuario en la tabla accounts,
+	// referenciando la cuenta de TigerBeetle recien creada. El numero de
+	// cuenta se genera aleatoriamente; en el caso extremadamente
+	// improbable de colision con uno existente, se reintenta.
+	var accountID, accountNumber string
+	var accountCreatedAt time.Time
+	const maxAttempts = 5
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		accountNumber, err = db.GenerateAccountNumber()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "error generando numero de cuenta")
+			return
+		}
+
+		err = h.PG.QueryRow(r.Context(),
+			`INSERT INTO accounts (user_id, tigerbeetle_account_id, account_number, account_type, currency)
+			 VALUES ($1, $2, $3, 'checking', 'USD') RETURNING id, created_at`,
+			userID, tbAccountID.String(), accountNumber,
+		).Scan(&accountID, &accountCreatedAt)
+		if err == nil {
+			break
+		}
+		if !strings.Contains(err.Error(), "duplicate key") || attempt == maxAttempts {
+			log.Printf("error creando cuenta en postgres: %v", err)
+			writeError(w, http.StatusInternalServerError, "error creando cuenta")
+			return
+		}
+		// numero de cuenta duplicado (muy raro) - reintenta con uno nuevo
+	}
+
 	token, err := h.generateToken(userID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "error generando token")
@@ -75,10 +106,17 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, models.AuthResponse{
 		Token: token,
 		User: models.User{
-			ID:                   userID,
-			Email:                req.Email,
-			FullName:             req.FullName,
+			ID:       userID,
+			Email:    req.Email,
+			FullName: req.FullName,
+		},
+		Account: models.Account{
+			ID:                   accountID,
 			TigerBeetleAccountID: tbAccountID.String(),
+			AccountNumber:        accountNumber,
+			AccountType:          "checking",
+			Currency:             "USD",
+			CreatedAt:            accountCreatedAt,
 		},
 	})
 }
@@ -96,12 +134,10 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		userID       string
 		passwordHash string
 		fullName     string
-		tbAccountID  string
 	)
 	err := h.PG.QueryRow(r.Context(),
-		`SELECT id, password_hash, full_name, tigerbeetle_account_id
-		 FROM users WHERE email = $1`, req.Email,
-	).Scan(&userID, &passwordHash, &fullName, &tbAccountID)
+		`SELECT id, password_hash, full_name FROM users WHERE email = $1`, req.Email,
+	).Scan(&userID, &passwordHash, &fullName)
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "credenciales invalidas")
 		return
@@ -109,6 +145,17 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(req.Password)); err != nil {
 		writeError(w, http.StatusUnauthorized, "credenciales invalidas")
+		return
+	}
+
+	// Cuenta "principal": la mas antigua del usuario.
+	var account models.Account
+	err = h.PG.QueryRow(r.Context(),
+		`SELECT id, tigerbeetle_account_id, COALESCE(account_number, ''), account_type, currency, created_at
+		 FROM accounts WHERE user_id = $1 ORDER BY created_at ASC LIMIT 1`, userID,
+	).Scan(&account.ID, &account.TigerBeetleAccountID, &account.AccountNumber, &account.AccountType, &account.Currency, &account.CreatedAt)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "el usuario no tiene ninguna cuenta asociada")
 		return
 	}
 
@@ -121,11 +168,11 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, models.AuthResponse{
 		Token: token,
 		User: models.User{
-			ID:                   userID,
-			Email:                req.Email,
-			FullName:             fullName,
-			TigerBeetleAccountID: tbAccountID,
+			ID:       userID,
+			Email:    req.Email,
+			FullName: fullName,
 		},
+		Account: account,
 	})
 }
 

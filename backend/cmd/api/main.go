@@ -72,6 +72,7 @@ func main() {
 	r.Route("/api", func(r chi.Router) {
 		r.Use(appmiddleware.Auth(cfg.JWTSecret))
 
+		r.Get("/accounts", h.GetAccounts)
 		r.Get("/accounts/me", h.GetAccountInfo)
 		r.Get("/accounts/balance", h.GetBalance)
 

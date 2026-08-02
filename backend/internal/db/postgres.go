@@ -31,10 +31,21 @@ func Migrate(pool *pgxpool.Pool) error {
 		email TEXT UNIQUE NOT NULL,
 		password_hash TEXT NOT NULL,
 		full_name TEXT NOT NULL,
-		tigerbeetle_account_id TEXT UNIQUE NOT NULL,
 		created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 		updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 	);
+
+	CREATE TABLE IF NOT EXISTS accounts (
+		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+		user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		tigerbeetle_account_id TEXT UNIQUE NOT NULL,
+		account_number TEXT UNIQUE NOT NULL,
+		account_type TEXT NOT NULL DEFAULT 'checking',
+		currency TEXT NOT NULL DEFAULT 'USD',
+		created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_accounts_user_id ON accounts(user_id);
 
 	CREATE TABLE IF NOT EXISTS sessions (
 		id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

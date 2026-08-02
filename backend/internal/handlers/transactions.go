@@ -63,6 +63,8 @@ func (h *Handler) Withdraw(w http.ResponseWriter, r *http.Request) {
 }
 
 // POST /api/transactions/transfer
+// req.ToAccountID es el NUMERO DE CUENTA publico (ej. "4001-1234-5678-0001"),
+// no el ID interno de TigerBeetle - se resuelve el uno al otro consultando Postgres.
 func (h *Handler) Transfer(w http.ResponseWriter, r *http.Request) {
 	var req models.TransferRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Amount == 0 || req.ToAccountID == "" {
@@ -76,25 +78,24 @@ func (h *Handler) Transfer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	toAccountID, err := tbtypes.HexStringToUint128(req.ToAccountID)
+	var toTBHex string
+	err = h.PG.QueryRow(r.Context(),
+		`SELECT tigerbeetle_account_id FROM accounts WHERE account_number = $1`,
+		req.ToAccountID,
+	).Scan(&toTBHex)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "identificador de cuenta destino invalido")
+		writeError(w, http.StatusNotFound, "la cuenta destino no existe")
+		return
+	}
+
+	toAccountID, err := tbtypes.HexStringToUint128(toTBHex)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "cuenta destino invalida")
 		return
 	}
 
 	if toAccountID == fromAccountID {
 		writeError(w, http.StatusBadRequest, "no puedes transferir a tu propia cuenta")
-		return
-	}
-
-	// Validar que la cuenta destino exista antes de intentar la transferencia
-	var exists bool
-	err = h.PG.QueryRow(r.Context(),
-		`SELECT EXISTS(SELECT 1 FROM users WHERE tigerbeetle_account_id = $1)`,
-		req.ToAccountID,
-	).Scan(&exists)
-	if err != nil || !exists {
-		writeError(w, http.StatusNotFound, "la cuenta destino no existe")
 		return
 	}
 
@@ -139,6 +140,7 @@ func (h *Handler) History(w http.ResponseWriter, r *http.Request) {
 		debitIsBank := t.DebitAccountID == bankAccountID
 		creditIsBank := t.CreditAccountID == bankAccountID
 
+		var counterpartyTBHex string
 		switch {
 		case debitIsBank && !creditIsBank:
 			item.Type = "deposit"
@@ -146,12 +148,23 @@ func (h *Handler) History(w http.ResponseWriter, r *http.Request) {
 			item.Type = "withdrawal"
 		case t.DebitAccountID == accountID:
 			item.Type = "transfer_sent"
-			item.CounterpartyAccountID = t.CreditAccountID.String()
+			counterpartyTBHex = t.CreditAccountID.String()
 		case t.CreditAccountID == accountID:
 			item.Type = "transfer_received"
-			item.CounterpartyAccountID = t.DebitAccountID.String()
+			counterpartyTBHex = t.DebitAccountID.String()
 		default:
 			item.Type = "unknown"
+		}
+
+		if counterpartyTBHex != "" {
+			var accountNumber string
+			err := h.PG.QueryRow(r.Context(),
+				`SELECT account_number FROM accounts WHERE tigerbeetle_account_id = $1`,
+				counterpartyTBHex,
+			).Scan(&accountNumber)
+			if err == nil {
+				item.CounterpartyAccountNumber = accountNumber
+			}
 		}
 
 		items = append(items, item)
