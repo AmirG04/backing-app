@@ -92,7 +92,8 @@ services:
       TIGERBEETLE_CLUSTER_ID: "0"
       JWT_SECRET: change_me_in_production
       PORT: "8080"
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-}
     ports:
       - "8080:8080"
     networks:

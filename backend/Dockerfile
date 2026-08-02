@@ -1,5 +1,5 @@
 # --- Etapa 1: build ---
-FROM golang:1.22-bookworm AS builder
+FROM golang:1.25-bookworm AS builder
 
 # TigerBeetle usa CGO (codigo nativo), necesitamos gcc y libc de verdad (no musl)
 RUN apt-get update && apt-get install -y --no-install-recommends \
