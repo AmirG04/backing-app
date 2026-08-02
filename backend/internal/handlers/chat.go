@@ -23,13 +23,37 @@ las herramientas disponibles (nunca inventes montos ni saldos).
 
 Responde siempre en español, de forma breve, clara y amigable.
 
-Antes de invocar las herramientas "withdraw" o "transfer" necesitas tener
-claro el monto (y la cuenta destino en el caso de transferencias). Si el
-usuario no dio esa informacion todavia, pidesela en un mensaje de texto en
-vez de invocar la herramienta. En cuanto tengas los datos necesarios, invoca
-la herramienta correspondiente - el sistema se encarga automaticamente de
-pedirle confirmacion final al usuario antes de ejecutar cualquier operacion
-critica, asi que no necesitas pedir confirmacion tu mismo.`
+REGLAS CRITICAS - sigue estas reglas sin excepcion:
+1. NUNCA afirmes que un deposito, retiro o transferencia se completo a
+   menos que hayas recibido un resultado de herramienta que confirme
+   exactamente esa operacion en este turno. Si no invocaste la
+   herramienta o no recibiste su resultado, no puedes decir que la
+   operacion se realizo.
+2. Invoca como maximo UNA herramienta por mensaje del usuario. Si el
+   usuario pide varias cosas en el mismo mensaje (por ejemplo "cuanto
+   tengo y retira 10"), procesa solo la primera y termina tu respuesta
+   pidiendole que solicite la segunda en un mensaje separado - no
+   invoques una segunda herramienta en el mismo turno.
+3. Antes de invocar "withdraw" o "transfer" necesitas tener claro el
+   monto (y la cuenta destino en el caso de transferencias). Si el
+   usuario no dio esa informacion todavia, pidesela en un mensaje de
+   texto en vez de invocar la herramienta.
+4. El sistema se encarga automaticamente de pedirle confirmacion final
+   al usuario antes de ejecutar cualquier operacion critica (withdraw o
+   transfer), asi que no necesitas pedir confirmacion tu mismo - solo
+   invoca la herramienta cuando tengas los datos necesarios.
+
+FORMATO Y TONO:
+- Usa un tono calido y cercano, como un asistente que realmente quiere
+  ayudar - no un sistema robotico.
+- Da formato a tus respuestas con markdown cuando ayude a la claridad:
+  negritas para montos importantes, listas numeradas o con vinetas para
+  historiales o pasos, emojis ocasionales y relevantes (💰 📋 ✅ etc.)
+  sin exagerar.
+- Se breve: nadie quiere leer un parrafo largo para saber su saldo.
+- Cuando muestres montos, usa el simbolo $ (ej. "$100").
+- Termina con una pregunta o pie amigable solo cuando tenga sentido
+  (no lo agregues mecanicamente en cada respuesta).`
 
 // POST /api/chat
 func (h *Handler) Chat(w http.ResponseWriter, r *http.Request) {
@@ -146,10 +170,26 @@ func (h *Handler) Chat(w http.ResponseWriter, r *http.Request) {
 	// 5. Mandar el resultado de vuelta al modelo para que redacte la
 	// respuesta final en lenguaje natural.
 	assistantMsg := resp.Choices[0].Message
-	followUpMessages := append(messages,
-		assistantMsg,
-		ai.Message{Role: "tool", ToolCallID: toolCall.ID, Content: toolResultText},
-	)
+
+	toolResultMessages := []ai.Message{
+		{Role: "tool", ToolCallID: toolCall.ID, Content: toolResultText},
+	}
+	// Defensa contra alucinaciones: si el modelo pidio mas de una
+	// herramienta en el mismo turno (ej. "cuanto tengo y retira 10"),
+	// solo procesamos la primera. Para las demas, respondemos
+	// explicitamente que no se ejecutaron, en vez de dejarlas sin
+	// respuesta - de lo contrario el modelo puede inventarse un
+	// resultado plausible para ellas en su respuesta final.
+	for _, extraCall := range assistantMsg.ToolCalls[1:] {
+		toolResultMessages = append(toolResultMessages, ai.Message{
+			Role:       "tool",
+			ToolCallID: extraCall.ID,
+			Content:    "Esta operacion no se proceso. Solo se puede procesar una operacion por mensaje; pide al usuario que la solicite por separado.",
+		})
+	}
+
+	followUpMessages := append(messages, assistantMsg)
+	followUpMessages = append(followUpMessages, toolResultMessages...)
 
 	followUp, err := h.AI.SendMessage(followUpMessages, tools)
 	if err != nil {

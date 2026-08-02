@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	gosdk "github.com/modelcontextprotocol/go-sdk/mcp"
 	tbtypes "github.com/tigerbeetle/tigerbeetle-go/pkg/types"
@@ -102,7 +103,8 @@ func NewBankingServer(tb *db.TigerBeetleClient, accountID tbtypes.Uint128) *gosd
 			if i > 0 {
 				sb.WriteString("; ")
 			}
-			sb.WriteString(fmt.Sprintf("%s de %d", kind, amt))
+			fecha := time.Unix(0, int64(t.Timestamp)).UTC().Format("2006-01-02 15:04 UTC")
+			sb.WriteString(fmt.Sprintf("%s de %d el %s", kind, amt, fecha))
 		}
 		sb.WriteString(".")
 		return textResult(sb.String()), nil, nil
