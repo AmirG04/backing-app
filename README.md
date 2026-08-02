@@ -75,6 +75,26 @@ Antes de ejecutar el proyecto debes tener instalado:
 - Docker Desktop
 - Git
 
+## 🔑 Variables de entorno
+
+Copia `.env.example` a `.env` en la raíz del proyecto:
+
+```bash
+cp .env.example .env
+```
+
+**El proyecto completo funciona sin ninguna variable de entorno adicional**
+(auth, cuentas, transacciones e historial no dependen de ninguna key
+externa). La única variable opcional es `OPENROUTER_API_KEY`, necesaria
+únicamente para el chat con IA (`POST /api/chat`). Sin ella, el resto de
+la aplicación sigue funcionando normalmente; el chat responde con un error
+claro indicando que falta configurar la key.
+
+Para conseguir una key: [openrouter.ai](https://openrouter.ai) → crear
+cuenta → API Keys. El modelo por defecto es `anthropic/claude-sonnet-4.5`;
+se puede cambiar con la variable opcional `OPENROUTER_MODEL` a cualquier
+modelo del catálogo de OpenRouter que soporte "tool calling".
+
 ---
 
 ## ▶️ Ejecución
