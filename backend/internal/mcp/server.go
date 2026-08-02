@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	gosdk "github.com/modelcontextprotocol/go-sdk/mcp"
 	tbtypes "github.com/tigerbeetle/tigerbeetle-go/pkg/types"
 
@@ -41,7 +42,7 @@ type amountInput struct {
 }
 
 type transferInput struct {
-	ToAccountID string  `json:"to_account_id" jsonschema:"identificador hexadecimal de la cuenta destino"`
+	ToAccountID string  `json:"to_account_id" jsonschema:"numero de cuenta destino, formato 4001-XXXX-XXXX-NNNN"`
 	Amount      float64 `json:"amount" jsonschema:"monto a transferir, debe ser mayor a 0"`
 }
 
@@ -58,7 +59,7 @@ func errorResult(msg string) *gosdk.CallToolResult {
 // nuevo por cada conversacion de chat (son objetos livianos), de forma
 // que las herramientas solo puedan operar sobre la cuenta del usuario
 // autenticado en esa peticion - nunca sobre la de otro usuario.
-func NewBankingServer(tb *db.TigerBeetleClient, accountID tbtypes.Uint128) *gosdk.Server {
+func NewBankingServer(pg *pgxpool.Pool, tb *db.TigerBeetleClient, accountID tbtypes.Uint128) *gosdk.Server {
 	server := gosdk.NewServer(&gosdk.Implementation{Name: "banking-mcp-server", Version: "v1.0.0"}, nil)
 
 	gosdk.AddTool(server, &gosdk.Tool{
@@ -149,7 +150,17 @@ func NewBankingServer(tb *db.TigerBeetleClient, accountID tbtypes.Uint128) *gosd
 		if amount == 0 {
 			return errorResult("el monto debe ser mayor a 0"), nil, nil
 		}
-		toID, err := tbtypes.HexStringToUint128(input.ToAccountID)
+
+		var toTBHex string
+		err := pg.QueryRow(ctx,
+			`SELECT tigerbeetle_account_id FROM accounts WHERE account_number = $1`,
+			input.ToAccountID,
+		).Scan(&toTBHex)
+		if err != nil {
+			return errorResult("la cuenta destino no existe"), nil, nil
+		}
+
+		toID, err := tbtypes.HexStringToUint128(toTBHex)
 		if err != nil {
 			return errorResult("la cuenta destino no es valida"), nil, nil
 		}

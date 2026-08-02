@@ -205,7 +205,7 @@ func (h *Handler) Chat(w http.ResponseWriter, r *http.Request) {
 // un cliente a el sobre un transporte en memoria, y retorna la sesion del
 // cliente lista para usarse, junto con una funcion de limpieza.
 func (h *Handler) connectMCP(ctx context.Context, accountID tbtypes.Uint128) (*gosdk.ClientSession, func(), error) {
-	server := mcp.NewBankingServer(h.TB, accountID)
+	server := mcp.NewBankingServer(h.PG, h.TB, accountID)
 	client := gosdk.NewClient(&gosdk.Implementation{Name: "banking-chat-client", Version: "v1.0.0"}, nil)
 
 	serverTransport, clientTransport := gosdk.NewInMemoryTransports()
