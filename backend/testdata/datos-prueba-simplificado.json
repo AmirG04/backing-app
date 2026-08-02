@@ -1,0 +1,283 @@
+{
+  "users": [
+    {
+      "id": "292d3f0e-8087-43e0-86e0-6b7cbe3a0c86",
+      "email": "ihernandez@email.com",
+      "password": "Isabel2024!",
+      "full_name": "Isabel Hernández Álvarez",
+      "created_at": "2023-07-05T01:10:34Z"
+    },
+    {
+      "id": "2da49f44-0707-46d6-89a0-ea258ec244ed",
+      "email": "mjimenez@example.com",
+      "password": "Miguel2024!",
+      "full_name": "Miguel Jiménez Molina",
+      "created_at": "2023-09-17T07:54:07Z"
+    },
+    {
+      "id": "d12f6554-2c5e-4b07-afb1-be56ce7453aa",
+      "email": "paulamolina@mail.com",
+      "password": "Paula2024!",
+      "full_name": "Paula Molina Ruiz",
+      "created_at": "2023-10-28T10:09:27Z"
+    },
+    {
+      "id": "8d31d881-5d0a-4552-9849-722c64fd41d6",
+      "email": "mperez@email.com",
+      "password": "Miguel2024!",
+      "full_name": "Miguel Pérez Rubio",
+      "created_at": "2024-02-11T23:00:01Z"
+    },
+    {
+      "id": "02cfedc7-0677-40a1-955e-53cfef7d7f8f",
+      "email": "flopez@example.com",
+      "password": "Francisco2024!",
+      "full_name": "Francisco López Delgado",
+      "created_at": "2023-08-24T22:42:06Z"
+    },
+    {
+      "id": "92cd4355-f90c-4050-b4ab-0f0ff1a7170a",
+      "email": "albertoramirez@email.com",
+      "password": "Alberto2024!",
+      "full_name": "Alberto Ramírez Morales",
+      "created_at": "2023-09-27T14:05:12Z"
+    },
+    {
+      "id": "85ddc337-04db-4cef-a885-600ae8f58e2b",
+      "email": "acastro@example.com",
+      "password": "Ana2024!",
+      "full_name": "Ana Castro Nuñez",
+      "created_at": "2023-11-15T06:15:03Z"
+    },
+    {
+      "id": "e4bd890f-ec8e-4531-aa0e-0bed00cce9c0",
+      "email": "antonio.lopez489@test.com",
+      "password": "Antonio2024!",
+      "full_name": "Antonio López Vázquez",
+      "created_at": "2023-08-10T21:25:43Z"
+    },
+    {
+      "id": "5460ed65-1124-4c70-a0cf-c658d3696d9a",
+      "email": "miguel.perez@email.com",
+      "password": "Miguel2024!",
+      "full_name": "Miguel Pérez Marín",
+      "created_at": "2024-04-06T10:31:30Z"
+    },
+    {
+      "id": "e9f5473b-801a-4930-8084-25cad7035197",
+      "email": "slopez@email.com",
+      "password": "Silvia2024!",
+      "full_name": "Silvia López Jiménez",
+      "created_at": "2024-07-17T20:40:28Z"
+    }
+  ],
+  "accounts": [
+    {
+      "account_number": "4001-6588-5247-0001",
+      "user_id": "292d3f0e-8087-43e0-86e0-6b7cbe3a0c86",
+      "initial_balance": 32354.53,
+      "currency": "USD",
+      "account_type": "savings"
+    },
+    {
+      "account_number": "4001-1428-2372-0002",
+      "user_id": "2da49f44-0707-46d6-89a0-ea258ec244ed",
+      "initial_balance": 17509.23,
+      "currency": "USD",
+      "account_type": "savings"
+    },
+    {
+      "account_number": "4001-4271-7471-0003",
+      "user_id": "d12f6554-2c5e-4b07-afb1-be56ce7453aa",
+      "initial_balance": 45172.75,
+      "currency": "USD",
+      "account_type": "checking"
+    },
+    {
+      "account_number": "4001-3262-1708-0005",
+      "user_id": "8d31d881-5d0a-4552-9849-722c64fd41d6",
+      "initial_balance": 46597.64,
+      "currency": "USD",
+      "account_type": "checking"
+    },
+    {
+      "account_number": "4001-9944-7218-0006",
+      "user_id": "02cfedc7-0677-40a1-955e-53cfef7d7f8f",
+      "initial_balance": 35425.52,
+      "currency": "USD",
+      "account_type": "savings"
+    },
+    {
+      "account_number": "4001-7120-7006-0007",
+      "user_id": "92cd4355-f90c-4050-b4ab-0f0ff1a7170a",
+      "initial_balance": 18777.08,
+      "currency": "USD",
+      "account_type": "checking"
+    },
+    {
+      "account_number": "4001-5264-9474-0008",
+      "user_id": "85ddc337-04db-4cef-a885-600ae8f58e2b",
+      "initial_balance": 38373.17,
+      "currency": "USD",
+      "account_type": "checking"
+    },
+    {
+      "account_number": "4001-6242-7575-0010",
+      "user_id": "e4bd890f-ec8e-4531-aa0e-0bed00cce9c0",
+      "initial_balance": 28897.13,
+      "currency": "USD",
+      "account_type": "checking"
+    },
+    {
+      "account_number": "4001-2505-6799-0013",
+      "user_id": "5460ed65-1124-4c70-a0cf-c658d3696d9a",
+      "initial_balance": 41526.16,
+      "currency": "USD",
+      "account_type": "checking"
+    },
+    {
+      "account_number": "4001-6271-7802-0016",
+      "user_id": "e9f5473b-801a-4930-8084-25cad7035197",
+      "initial_balance": 249.84,
+      "currency": "USD",
+      "account_type": "checking"
+    }
+  ],
+  "transactions": [
+    {
+      "from_account": "4001-7120-7006-0007",
+      "to_account": "EXTERNAL",
+      "amount": 1472.64,
+      "type": "withdrawal",
+      "description": "Pago de servicios",
+      "timestamp": "2023-06-01T22:57:42Z",
+      "status": "completed"
+    },
+    {
+      "from_account": "4001-9944-7218-0006",
+      "to_account": "EXTERNAL",
+      "amount": 1869.98,
+      "type": "withdrawal",
+      "description": "Compra de ropa",
+      "timestamp": "2023-07-24T00:44:05Z",
+      "status": "completed"
+    },
+    {
+      "from_account": "EXTERNAL",
+      "to_account": "4001-1428-2372-0002",
+      "amount": 1200.31,
+      "type": "deposit",
+      "description": "Compensación",
+      "timestamp": "2023-08-12T00:46:50Z",
+      "status": "completed"
+    },
+    {
+      "from_account": "4001-6588-5247-0001",
+      "to_account": "EXTERNAL",
+      "amount": 2378.82,
+      "type": "withdrawal",
+      "description": "Compras supermercado",
+      "timestamp": "2023-09-19T19:38:54Z",
+      "status": "completed"
+    },
+    {
+      "from_account": "EXTERNAL",
+      "to_account": "4001-6588-5247-0001",
+      "amount": 4553.94,
+      "type": "deposit",
+      "description": "Venta de artículo",
+      "timestamp": "2023-11-24T14:33:00Z",
+      "status": "completed"
+    },
+    {
+      "from_account": "4001-9944-7218-0006",
+      "to_account": "EXTERNAL",
+      "amount": 2161.58,
+      "type": "withdrawal",
+      "description": "Compras supermercado",
+      "timestamp": "2023-11-25T16:59:00Z",
+      "status": "completed"
+    },
+    {
+      "from_account": "4001-7120-7006-0007",
+      "to_account": "EXTERNAL",
+      "amount": 1045.86,
+      "type": "withdrawal",
+      "description": "Retiro en cajero ATM",
+      "timestamp": "2023-12-21T00:06:08Z",
+      "status": "completed"
+    },
+    {
+      "from_account": "4001-6588-5247-0001",
+      "to_account": "EXTERNAL",
+      "amount": 2714.62,
+      "type": "withdrawal",
+      "description": "Mantenimiento vehículo",
+      "timestamp": "2023-12-24T13:57:51Z",
+      "status": "completed"
+    },
+    {
+      "from_account": "4001-4271-7471-0003",
+      "to_account": "EXTERNAL",
+      "amount": 2680.81,
+      "type": "withdrawal",
+      "description": "Compra de ropa",
+      "timestamp": "2024-02-08T11:00:37Z",
+      "status": "completed"
+    },
+    {
+      "from_account": "EXTERNAL",
+      "to_account": "4001-1428-2372-0002",
+      "amount": 4065.74,
+      "type": "deposit",
+      "description": "Pago de servicios",
+      "timestamp": "2024-02-23T15:41:53Z",
+      "status": "completed"
+    },
+    {
+      "from_account": "EXTERNAL",
+      "to_account": "4001-1428-2372-0002",
+      "amount": 4355.4,
+      "type": "deposit",
+      "description": "Reembolso",
+      "timestamp": "2024-03-05T07:09:55Z",
+      "status": "completed"
+    },
+    {
+      "from_account": "EXTERNAL",
+      "to_account": "4001-5264-9474-0008",
+      "amount": 3242.57,
+      "type": "deposit",
+      "description": "Devolución de garantía",
+      "timestamp": "2024-03-18T15:52:00Z",
+      "status": "completed"
+    },
+    {
+      "from_account": "4001-7120-7006-0007",
+      "to_account": "EXTERNAL",
+      "amount": 3622.14,
+      "type": "withdrawal",
+      "description": "Pago de facturas",
+      "timestamp": "2024-03-26T06:32:43Z",
+      "status": "completed"
+    },
+    {
+      "from_account": "EXTERNAL",
+      "to_account": "4001-6271-7802-0016",
+      "amount": 581.86,
+      "type": "deposit",
+      "description": "Ingreso por alquiler",
+      "timestamp": "2024-03-30T03:59:12Z",
+      "status": "completed"
+    },
+    {
+      "from_account": "EXTERNAL",
+      "to_account": "4001-4271-7471-0003",
+      "amount": 531.18,
+      "type": "deposit",
+      "description": "Ingreso extraordinario",
+      "timestamp": "2024-06-28T07:33:51Z",
+      "status": "completed"
+    }
+  ]
+}
