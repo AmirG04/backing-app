@@ -2,7 +2,7 @@
 
 Prueba técnica desarrollada como un sistema de banca en línea simplificado.
 
-El proyecto permite a los usuarios autenticarse, administrar una cuenta bancaria y realizar operaciones financieras utilizando TigerBeetle como motor contable y PostgreSQL para la gestión de usuarios. Además, integra un chat con Inteligencia Artificial mediante Model Context Protocol (MCP), que permite realizar operaciones bancarias utilizando lenguaje natural, como consultar el saldo, revisar el historial de transacciones, realizar depósitos, retiros y transferencias. Para garantizar la seguridad, la IA solicita confirmación antes de ejecutar cualquier operación crítica.
+El proyecto permite a los usuarios autenticarse, administrar una o varias cuentas bancarias y realizar operaciones financieras utilizando TigerBeetle como motor contable y PostgreSQL para la gestión de usuarios. Además, integra un chat con Inteligencia Artificial mediante Model Context Protocol (MCP), que permite realizar operaciones bancarias utilizando lenguaje natural, como consultar el saldo, revisar el historial de transacciones, realizar depósitos, retiros y transferencias. Para garantizar la seguridad, la IA solicita confirmación antes de ejecutar cualquier operación crítica.
 
 ---
 
@@ -15,6 +15,8 @@ El proyecto permite a los usuarios autenticarse, administrar una cuenta bancaria
 - pgx (driver PostgreSQL)
 - JWT (golang-jwt)
 - bcrypt
+- SDK oficial de Model Context Protocol (`modelcontextprotocol/go-sdk`)
+- OpenRouter (acceso al modelo de IA, compatible con Claude/GPT/otros)
 
 ### Frontend
 
@@ -26,8 +28,8 @@ El proyecto permite a los usuarios autenticarse, administrar una cuenta bancaria
 
 ### Base de datos
 
-- TigerBeetle
-- PostgreSQL
+- TigerBeetle (cuentas, transferencias, balances)
+- PostgreSQL (usuarios, autenticación, cuentas)
 
 ### Infraestructura
 
@@ -42,22 +44,25 @@ El proyecto permite a los usuarios autenticarse, administrar una cuenta bancaria
 ```
 banking-app/
 ├── backend/
-│   ├── cmd/api/              # punto de entrada (main.go)
+│   ├── cmd/
+│   │   ├── api/               # servidor principal (main.go)
+│   │   └── seed/               # script para cargar datos de prueba masivos
+│   ├── testdata/                # dataset de prueba simplificado
 │   └── internal/
+│       ├── ai/                  # cliente de OpenRouter
 │       ├── config/
-│       ├── db/                # Postgres + TigerBeetle
-│       ├── handlers/          # auth, accounts, transactions, chat
-│       ├── middleware/        # JWT
+│       ├── db/                  # Postgres + TigerBeetle + generador de account_number
+│       ├── handlers/            # auth, accounts, transactions, chat
+│       ├── mcp/                  # servidor MCP con las herramientas bancarias
+│       ├── middleware/          # JWT
 │       └── models/
 ├── frontend/
 │   └── src/
-│       ├── components/        # ChatWidget
-│       ├── lib/                # api.js, auth.jsx
-│       └── pages/              # Login, Dashboard, History
+│       ├── components/          # ChatWidget
+│       ├── lib/                  # api.js, auth.jsx
+│       └── pages/                # Login, Dashboard, History
 ├── docs/
 │   ├── API.md
-│   ├── DATABASE.md
-│   ├── DECISIONS.md
 │   └── KNOWN_ISSUES.md
 ├── docker-compose.yml
 ├── README.md
@@ -117,6 +122,16 @@ Levantar todos los servicios
 docker compose up --build
 ```
 
+### Cargar datos de prueba (opcional)
+
+Además del registro normal, el proyecto incluye un script para cargar
+usuarios/cuentas/transacciones de prueba en volumen (útil para pruebas de
+carga o para tener datos realistas rápido):
+
+```bash
+docker compose run --rm -v "${PWD}/backend/testdata:/testdata" backend ./seed /testdata/datos-prueba-simplificado.json
+```
+
 ---
 
 ## 📌 Funcionalidades
@@ -130,41 +145,47 @@ docker compose up --build
 
 ### Cuentas
 
-- Creación automática de cuenta bancaria
-- Consulta de saldo
-- Información de la cuenta
+- Un usuario puede tener **una o varias cuentas bancarias**
+- Cada cuenta tiene un **número de cuenta público** (formato `4001-XXXX-XXXX-NNNN`),
+  generado automáticamente al crearse - es el identificador que se usa
+  para recibir transferencias (el ID interno de TigerBeetle nunca se expone)
+- Consulta de saldo por cuenta
+- Listado de todas las cuentas del usuario, con selector en el dashboard
 
 ### Transacciones
 
 - Depósitos
 - Retiros
-- Transferencias
-- Historial de movimientos
+- Transferencias (identificando la cuenta destino por su número de cuenta)
+- Historial de movimientos, con el número de cuenta de la contraparte
 
 ### Dashboard
 
 - Información general
+- Selector de cuenta activa (si el usuario tiene más de una)
 - Últimas transacciones
 - Chat integrado
 
-### IA
+### IA (chat vía MCP)
 
-> ⚠️ **Estado actual: en desarrollo.** La UI del chat ya está integrada en
-> el dashboard y conectada a `/api/chat`, pero la integración con el
-> modelo de IA vía MCP todavía no está implementada del lado del backend.
-
-- Chat mediante lenguaje natural
-- Confirmación antes de ejecutar operaciones críticas
-- Consulta de saldo y movimientos
+- Chat mediante lenguaje natural, con confirmación obligatoria antes de
+  ejecutar operaciones críticas (retiro/transferencia)
+- Consulta de saldo, historial, depósitos, retiros y transferencias
+- Arquitectura real de MCP: un servidor MCP (SDK oficial) expone las
+  herramientas bancarias; el chat actúa como cliente MCP que las
+  descubre (`tools/list`) y las invoca (`tools/call`) - no son llamadas
+  directas a funciones Go
+- El modelo de IA se accede vía OpenRouter (por defecto, Claude)
 
 ---
 
 ## 🏗 Arquitectura
 
 - React consume una API REST desarrollada en Go.
-- PostgreSQL almacena usuarios y autenticación.
-- TigerBeetle administra todas las operaciones financieras.
-- Docker Compose orquesta todos los servicios.
+- PostgreSQL almacena usuarios y sus cuentas (relación 1 usuario → N cuentas).
+- TigerBeetle administra todas las operaciones financieras (balances y transferencias).
+- El chat con IA usa un servidor MCP embebido (mismo proceso, protocolo real vía transporte en memoria) que expone las operaciones bancarias como herramientas, y un cliente que las conecta con un modelo de IA vía OpenRouter.
+- Docker Compose orquesta los 5 servicios: postgres, tigerbeetle, backend, frontend.
 
 ---
 
@@ -192,12 +213,8 @@ Detalle completo, con síntomas y comandos exactos, en
 
 ## 📖 Documentación
 
-La documentación técnica se encuentra en la carpeta **docs**.
-
-- API.md
-- DATABASE.md
-- DECISIONS.md
-- KNOWN_ISSUES.md
+- [`docs/API.md`](./docs/API.md) — documentación de todos los endpoints (auth, cuentas, transacciones, chat), con ejemplos de request/response y códigos de error.
+- [`docs/KNOWN_ISSUES.md`](./docs/KNOWN_ISSUES.md) — problemas de infraestructura encontrados y su solución.
 
 ---
 
