@@ -74,12 +74,17 @@ banking-app/
 
 ## ⚙️ Requisitos
 
-Antes de ejecutar el proyecto debes tener instalado:
+Para ejecutar el proyecto (vía `docker compose up`) solo necesitas:
 
-- Go
-- Node.js (LTS)
-- Docker Desktop
-- Git
+- Docker Desktop (o Docker Engine + Docker Compose en Linux)
+- Git (para clonar el repositorio)
+
+**No hace falta tener Go ni Node.js instalados** — el backend y el
+frontend se compilan e instalan dentro de sus propios contenedores
+(imágenes `golang:1.25-bookworm` y `node:20-alpine`), no en la máquina
+host. Go/Node solo serían necesarios si alguien quisiera correr el
+backend o el frontend de forma nativa, fuera de Docker (no es el caso
+de la evaluación de este proyecto).
 
 ## 🔑 Variables de entorno
 
