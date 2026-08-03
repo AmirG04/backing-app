@@ -4,8 +4,10 @@ function getToken() {
   return localStorage.getItem('token')
 }
 
-async function request(path, options = {}) {
-  const token = getToken()
+// tokenOverride permite mandar un token distinto al guardado en sesion
+// (se usa solo para completar el 2FA, que manda el pre_auth_token).
+async function request(path, options = {}, tokenOverride) {
+  const token = tokenOverride || getToken()
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -32,6 +34,12 @@ export const api = {
     request('/api/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
   login: (payload) =>
     request('/api/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
+  login2FA: (preAuthToken, code) =>
+    request(
+      '/api/auth/2fa/login',
+      { method: 'POST', body: JSON.stringify({ code }) },
+      preAuthToken
+    ),
   logout: () => request('/api/auth/logout', { method: 'POST' }),
   getAccountInfo: () => request('/api/accounts/me'),
   getAccounts: () => request('/api/accounts'),
@@ -52,4 +60,11 @@ export const api = {
       body: JSON.stringify({ to_account_id, amount }),
     }),
   history: (accountId) => request(withAccount('/api/transactions/history', accountId)),
+
+  // 2FA
+  setup2FA: () => request('/api/2fa/setup', { method: 'POST' }),
+  verify2FA: (code) =>
+    request('/api/2fa/verify', { method: 'POST', body: JSON.stringify({ code }) }),
+  disable2FA: (password) =>
+    request('/api/2fa/disable', { method: 'POST', body: JSON.stringify({ password }) }),
 }

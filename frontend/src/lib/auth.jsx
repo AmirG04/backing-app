@@ -13,8 +13,7 @@ export function AuthProvider({ children }) {
     return stored ? JSON.parse(stored) : null
   })
 
-  async function login(email, password) {
-    const data = await api.login({ email, password })
+  function persistSession(data) {
     localStorage.setItem('token', data.token)
     localStorage.setItem('user', JSON.stringify(data.user))
     localStorage.setItem('account', JSON.stringify(data.account))
@@ -22,13 +21,26 @@ export function AuthProvider({ children }) {
     setAccount(data.account)
   }
 
+  // Devuelve { requiresTwoFactor: true, preAuthToken } si el usuario tiene
+  // 2FA activo (todavia no inicia sesion), o simplemente inicia sesion si no.
+  async function login(email, password) {
+    const data = await api.login({ email, password })
+    if (data.requires_2fa) {
+      return { requiresTwoFactor: true, preAuthToken: data.pre_auth_token }
+    }
+    persistSession(data)
+    return { requiresTwoFactor: false }
+  }
+
+  // Segundo paso del login cuando hay 2FA activo.
+  async function completeTwoFactorLogin(preAuthToken, code) {
+    const data = await api.login2FA(preAuthToken, code)
+    persistSession(data)
+  }
+
   async function register(email, password, full_name) {
     const data = await api.register({ email, password, full_name })
-    localStorage.setItem('token', data.token)
-    localStorage.setItem('user', JSON.stringify(data.user))
-    localStorage.setItem('account', JSON.stringify(data.account))
-    setUser(data.user)
-    setAccount(data.account)
+    persistSession(data)
   }
 
   function logout() {
@@ -41,7 +53,9 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, account, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ user, account, login, completeTwoFactorLogin, register, logout }}
+    >
       {children}
     </AuthContext.Provider>
   )

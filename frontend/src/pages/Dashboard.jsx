@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { api } from '../lib/api'
 import ChatWidget from '../components/ChatWidget'
@@ -96,12 +96,17 @@ export default function Dashboard() {
             <h1 className="text-lg font-bold text-slate-800">Banco Simplificado</h1>
             <p className="text-sm text-slate-500">Hola, {user?.full_name}</p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="text-sm text-slate-600 hover:text-red-600 font-medium"
-          >
-            Cerrar sesión
-          </button>
+          <div className="flex items-center gap-4">
+            <Link to="/security" className="text-sm text-slate-600 hover:text-blue-600 font-medium">
+              Seguridad
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="text-sm text-slate-600 hover:text-red-600 font-medium"
+            >
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       </header>
 
