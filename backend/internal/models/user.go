@@ -109,8 +109,17 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
+// ChatHistoryMessage es un turno previo de la conversacion (solo texto,
+// sin detalles de herramientas) que el frontend reenvia junto con cada
+// mensaje nuevo para que el modelo tenga contexto de lo ya hablado.
+type ChatHistoryMessage struct {
+	Role    string `json:"role"` // "user" | "assistant"
+	Content string `json:"content"`
+}
+
 type ChatRequest struct {
-	Message string `json:"message"`
+	Message string               `json:"message"`
+	History []ChatHistoryMessage `json:"history,omitempty"`
 }
 
 type ChatResponse struct {

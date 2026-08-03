@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	gosdk "github.com/modelcontextprotocol/go-sdk/mcp"
-	tbtypes "github.com/tigerbeetle/tigerbeetle-go/pkg/types"
 
 	"banking-app/backend/internal/ai"
 	"banking-app/backend/internal/mcp"
@@ -42,6 +41,23 @@ REGLAS CRITICAS - sigue estas reglas sin excepcion:
    al usuario antes de ejecutar cualquier operacion critica (withdraw o
    transfer), asi que no necesitas pedir confirmacion tu mismo - solo
    invoca la herramienta cuando tengas los datos necesarios.
+5. El usuario puede tener MAS DE UNA cuenta bancaria (ej. corriente y
+   ahorro). Las herramientas get_balance, get_history, deposit y
+   withdraw aceptan un "account_number" opcional; transfer acepta
+   "from_account_number" opcional para la cuenta de origen (el destino
+   siempre va en "to_account_id"). Si el usuario no especifico sobre
+   cual de sus cuentas operar y una herramienta responde con la lista de
+   sus cuentas, eso significa que tiene varias y hay que preguntarle
+   cual quiere usar (mencionando numero y tipo) - NO elijas una por tu
+   cuenta ni la inventes. Una vez que el usuario aclare, vuelve a invocar
+   la herramienta incluyendo el account_number/from_account_number
+   correcto.
+6. Si necesitas datos de una herramienta para responder (saldo,
+   historial, lista de cuentas), invocala INMEDIATAMENTE en este mismo
+   turno. Nunca respondas solo con frases como "dejame consultar" o
+   "voy a revisar" sin invocar la herramienta correspondiente en ese
+   mismo mensaje - o invocas la herramienta, o respondes con la
+   informacion que ya tienes; nunca anuncies una accion sin ejecutarla.
 
 FORMATO Y TONO:
 - Usa un tono calido y cercano, como un asistente que realmente quiere
@@ -65,20 +81,15 @@ func (h *Handler) Chat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accountID, _, err := h.getUserTBAccountID(r)
-	if err != nil {
-		writeError(w, http.StatusNotFound, "cuenta no encontrada")
-		return
-	}
-
 	ctx := r.Context()
 
-	// Conectamos un cliente MCP a un servidor MCP nuevo, atado a la cuenta
-	// de este usuario. Server y client viven en el mismo proceso, pero se
-	// comunican por el protocolo MCP real (JSON-RPC) a traves de un
-	// transporte en memoria que provee el SDK - no son llamadas directas
-	// a funciones Go.
-	mcpSession, closeSession, err := h.connectMCP(ctx, accountID)
+	// Conectamos un cliente MCP a un servidor MCP nuevo, atado a este
+	// usuario (no a una sola cuenta - un usuario puede tener varias, y
+	// cada herramienta resuelve cual usar). Server y client viven en el
+	// mismo proceso, pero se comunican por el protocolo MCP real
+	// (JSON-RPC) a traves de un transporte en memoria que provee el SDK -
+	// no son llamadas directas a funciones Go.
+	mcpSession, closeSession, err := h.connectMCP(ctx, userID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "error inicializando MCP: "+err.Error())
 		return
@@ -123,10 +134,22 @@ func (h *Handler) Chat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	messages := []ai.Message{
-		{Role: "system", Content: chatSystemPrompt},
-		{Role: "user", Content: req.Message},
+	messages := []ai.Message{{Role: "system", Content: chatSystemPrompt}}
+	// Limite defensivo del lado del servidor: aunque el frontend mande
+	// mas, solo usamos los ultimos turnos para no dejar crecer el costo
+	// de cada peticion sin control.
+	const maxHistoryTurns = 12
+	history := req.History
+	if len(history) > maxHistoryTurns {
+		history = history[len(history)-maxHistoryTurns:]
 	}
+	for _, h := range history {
+		if h.Role != "user" && h.Role != "assistant" {
+			continue
+		}
+		messages = append(messages, ai.Message{Role: h.Role, Content: h.Content})
+	}
+	messages = append(messages, ai.Message{Role: "user", Content: req.Message})
 
 	resp, err := h.AI.SendMessage(messages, tools)
 	if err != nil {
@@ -145,6 +168,30 @@ func (h *Handler) Chat(w http.ResponseWriter, r *http.Request) {
 
 	// 3. Operaciones criticas: pedir confirmacion en vez de ejecutar.
 	if mcp.CriticalTools[toolCall.Function.Name] {
+		accountField := "account_number"
+		if toolCall.Function.Name == mcp.ToolTransfer {
+			accountField = "from_account_number"
+		}
+		requested, _ := argsMap[accountField].(string)
+
+		// Resolvemos la cuenta origen ANTES de pedir confirmacion (no
+		// despues) - si el usuario tiene varias cuentas y no especifico
+		// cual, no tiene sentido preguntar "¿confirmas el retiro de $50?"
+		// sin saber de que cuenta, para descubrir la ambiguedad recien
+		// cuando confirme.
+		resolved, clarification, resolveErr := h.resolveAccountNumber(ctx, userID, requested)
+		if resolveErr != nil {
+			writeJSON(w, http.StatusOK, models.ChatResponse{
+				Reply: fmt.Sprintf("No se pudo procesar la solicitud: %s", resolveErr.Error()),
+			})
+			return
+		}
+		if clarification != "" {
+			writeJSON(w, http.StatusOK, models.ChatResponse{Reply: clarification})
+			return
+		}
+		argsMap[accountField] = resolved
+
 		h.pendingMu.Lock()
 		h.pendingByUser[userID] = pendingAction{
 			ToolName: toolCall.Function.Name,
@@ -201,11 +248,11 @@ func (h *Handler) Chat(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, models.ChatResponse{Reply: finalText, ActionExecuted: execErr == nil})
 }
 
-// connectMCP levanta un servidor MCP para la cuenta del usuario, conecta
-// un cliente a el sobre un transporte en memoria, y retorna la sesion del
+// connectMCP levanta un servidor MCP para este usuario, conecta un
+// cliente a el sobre un transporte en memoria, y retorna la sesion del
 // cliente lista para usarse, junto con una funcion de limpieza.
-func (h *Handler) connectMCP(ctx context.Context, accountID tbtypes.Uint128) (*gosdk.ClientSession, func(), error) {
-	server := mcp.NewBankingServer(h.PG, h.TB, accountID)
+func (h *Handler) connectMCP(ctx context.Context, userID string) (*gosdk.ClientSession, func(), error) {
+	server := mcp.NewBankingServer(h.PG, h.TB, userID)
 	client := gosdk.NewClient(&gosdk.Implementation{Name: "banking-chat-client", Version: "v1.0.0"}, nil)
 
 	serverTransport, clientTransport := gosdk.NewInMemoryTransports()
@@ -300,6 +347,64 @@ func (h *Handler) clearPending(userID string) {
 	h.pendingMu.Unlock()
 }
 
+var accountTypeLabels = map[string]string{
+	"checking": "Corriente",
+	"savings":  "Ahorro",
+}
+
+// resolveAccountNumber decide sobre cual cuenta del usuario debe operar
+// una accion critica, ANTES de pedir confirmacion (asi la pregunta de
+// confirmacion siempre es precisa). Si "requested" viene vacio y el
+// usuario tiene mas de una cuenta, retorna un mensaje pidiendole que
+// aclare cual quiere usar, en vez de resolver o adivinar.
+func (h *Handler) resolveAccountNumber(ctx context.Context, userID, requested string) (resolved string, clarification string, err error) {
+	rows, err := h.PG.Query(ctx,
+		`SELECT account_number, account_type FROM accounts WHERE user_id = $1 ORDER BY created_at ASC`, userID,
+	)
+	if err != nil {
+		return "", "", fmt.Errorf("error consultando cuentas")
+	}
+	defer rows.Close()
+
+	type acc struct{ number, accType string }
+	var accounts []acc
+	for rows.Next() {
+		var a acc
+		if err := rows.Scan(&a.number, &a.accType); err != nil {
+			return "", "", fmt.Errorf("error leyendo cuentas")
+		}
+		accounts = append(accounts, a)
+	}
+
+	if requested != "" {
+		for _, a := range accounts {
+			if strings.EqualFold(a.number, requested) {
+				return a.number, "", nil
+			}
+		}
+		return "", "", fmt.Errorf("no se encontro una cuenta tuya con ese numero")
+	}
+
+	switch len(accounts) {
+	case 0:
+		return "", "", fmt.Errorf("no tienes ninguna cuenta bancaria")
+	case 1:
+		return accounts[0].number, "", nil
+	default:
+		var sb strings.Builder
+		sb.WriteString("Tienes varias cuentas 📋 ¿sobre cuál quieres hacer esta operación?\n")
+		for _, a := range accounts {
+			label := accountTypeLabels[a.accType]
+			if label == "" {
+				label = a.accType
+			}
+			sb.WriteString(fmt.Sprintf("- %s (%s)\n", a.number, label))
+		}
+		sb.WriteString("Dime el número de cuenta.")
+		return "", sb.String(), nil
+	}
+}
+
 func buildConfirmationMessage(toolName string, args map[string]any) string {
 	amount := 0.0
 	if a, ok := args["amount"].(float64); ok {
@@ -307,9 +412,17 @@ func buildConfirmationMessage(toolName string, args map[string]any) string {
 	}
 	switch toolName {
 	case mcp.ToolWithdraw:
+		fromAccount, _ := args["account_number"].(string)
+		if fromAccount != "" {
+			return fmt.Sprintf("¿Confirmas que deseas retirar %.0f de la cuenta %s? Responde \"si\" para confirmar o \"no\" para cancelar.", amount, fromAccount)
+		}
 		return fmt.Sprintf("¿Confirmas que deseas retirar %.0f? Responde \"si\" para confirmar o \"no\" para cancelar.", amount)
 	case mcp.ToolTransfer:
 		toAccount, _ := args["to_account_id"].(string)
+		fromAccount, _ := args["from_account_number"].(string)
+		if fromAccount != "" {
+			return fmt.Sprintf("¿Confirmas que deseas transferir %.0f desde la cuenta %s hacia la cuenta %s? Responde \"si\" para confirmar o \"no\" para cancelar.", amount, fromAccount, toAccount)
+		}
 		return fmt.Sprintf("¿Confirmas que deseas transferir %.0f a la cuenta %s? Responde \"si\" para confirmar o \"no\" para cancelar.", amount, toAccount)
 	default:
 		return "¿Confirmas esta operacion? Responde \"si\" para confirmar o \"no\" para cancelar."

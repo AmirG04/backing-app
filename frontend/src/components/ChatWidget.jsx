@@ -59,6 +59,13 @@ export default function ChatWidget({ onActionCompleted }) {
     if (!input.trim()) return
 
     const userMessage = { role: 'user', content: input }
+    // Historial de lo ya conversado (antes de agregar este mensaje nuevo),
+    // para que el backend le de contexto al modelo - sin esto, cada
+    // mensaje se trata como si fuera el primero de la conversacion.
+    const history = messages
+      .filter((m) => m.role === 'user' || m.role === 'assistant')
+      .map((m) => ({ role: m.role, content: m.content }))
+
     setMessages((prev) => [...prev, userMessage])
     setInput('')
     setLoading(true)
@@ -71,7 +78,7 @@ export default function ChatWidget({ onActionCompleted }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ message: userMessage.content }),
+        body: JSON.stringify({ message: userMessage.content, history }),
       })
       const data = await res.json()
 
