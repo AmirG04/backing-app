@@ -31,6 +31,8 @@ func Migrate(pool *pgxpool.Pool) error {
 		email TEXT UNIQUE NOT NULL,
 		password_hash TEXT NOT NULL,
 		full_name TEXT NOT NULL,
+		totp_secret TEXT,
+		totp_enabled BOOLEAN NOT NULL DEFAULT false,
 		created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
 		updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 	);

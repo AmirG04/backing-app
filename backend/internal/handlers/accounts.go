@@ -60,23 +60,25 @@ func (h *Handler) GetAccountInfo(w http.ResponseWriter, r *http.Request) {
 	userID, _ := middleware.UserIDFromContext(r.Context())
 
 	var (
-		email     string
-		fullName  string
-		createdAt time.Time
+		email       string
+		fullName    string
+		createdAt   time.Time
+		totpEnabled bool
 	)
 	err := h.PG.QueryRow(r.Context(),
-		`SELECT email, full_name, created_at FROM users WHERE id = $1`, userID,
-	).Scan(&email, &fullName, &createdAt)
+		`SELECT email, full_name, created_at, totp_enabled FROM users WHERE id = $1`, userID,
+	).Scan(&email, &fullName, &createdAt, &totpEnabled)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "usuario no encontrado")
 		return
 	}
 
 	writeJSON(w, http.StatusOK, models.User{
-		ID:        userID,
-		Email:     email,
-		FullName:  fullName,
-		CreatedAt: createdAt,
+		ID:               userID,
+		Email:            email,
+		FullName:         fullName,
+		CreatedAt:        createdAt,
+		TwoFactorEnabled: totpEnabled,
 	})
 }
 

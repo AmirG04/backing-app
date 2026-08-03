@@ -67,6 +67,7 @@ func main() {
 		r.Post("/register", h.Register)
 		r.Post("/login", h.Login)
 		r.Post("/logout", h.Logout)
+		r.Post("/2fa/login", h.Login2FA) // usa un token de pre-autenticacion, no el middleware normal
 	})
 
 	r.Route("/api", func(r chi.Router) {
@@ -75,6 +76,10 @@ func main() {
 		r.Get("/accounts", h.GetAccounts)
 		r.Get("/accounts/me", h.GetAccountInfo)
 		r.Get("/accounts/balance", h.GetBalance)
+
+		r.Post("/2fa/setup", h.Setup2FA)
+		r.Post("/2fa/verify", h.Verify2FA)
+		r.Post("/2fa/disable", h.Disable2FA)
 
 		r.Post("/transactions/deposit", h.Deposit)
 		r.Post("/transactions/withdraw", h.Withdraw)

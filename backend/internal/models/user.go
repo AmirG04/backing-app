@@ -3,11 +3,12 @@ package models
 import "time"
 
 type User struct {
-	ID           string    `json:"id"`
-	Email        string    `json:"email"`
-	PasswordHash string    `json:"-"`
-	FullName     string    `json:"full_name"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID               string    `json:"id"`
+	Email            string    `json:"email"`
+	PasswordHash     string    `json:"-"`
+	FullName         string    `json:"full_name"`
+	TwoFactorEnabled bool      `json:"two_factor_enabled"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 // Account representa una cuenta bancaria de TigerBeetle asociada a un
@@ -37,6 +38,35 @@ type AuthResponse struct {
 	Token   string  `json:"token"`
 	User    User    `json:"user"`
 	Account Account `json:"account"`
+}
+
+// LoginResponse es lo que devuelve /api/auth/login. Si el usuario tiene
+// 2FA activo, no trae token de sesion todavia - trae un token temporal
+// de pre-autenticacion (PreAuthToken) que solo sirve para completar el
+// 2FA en /api/auth/2fa/login.
+type LoginResponse struct {
+	RequiresTwoFactor bool    `json:"requires_2fa"`
+	PreAuthToken      string  `json:"pre_auth_token,omitempty"`
+	Token             string  `json:"token,omitempty"`
+	User              *User   `json:"user,omitempty"`
+	Account           *Account `json:"account,omitempty"`
+}
+
+type Setup2FAResponse struct {
+	Secret     string `json:"secret"`
+	OTPAuthURL string `json:"otpauth_url"`
+}
+
+type Verify2FARequest struct {
+	Code string `json:"code"`
+}
+
+type Login2FARequest struct {
+	Code string `json:"code"`
+}
+
+type Disable2FARequest struct {
+	Password string `json:"password"`
 }
 
 type DepositRequest struct {

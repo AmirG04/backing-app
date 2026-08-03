@@ -39,6 +39,15 @@ func Auth(jwtSecret string) func(http.Handler) http.Handler {
 				return
 			}
 
+			// Los tokens de pre-autenticacion (emitidos mientras el usuario
+			// todavia no completa el 2FA) llevan una marca "purpose" y NUNCA
+			// deben aceptarse como sesion valida en rutas protegidas - solo
+			// sirven para el endpoint /api/auth/2fa/login.
+			if _, hasPurpose := claims["purpose"]; hasPurpose {
+				http.Error(w, `{"error":"token invalido"}`, http.StatusUnauthorized)
+				return
+			}
+
 			ctx := context.WithValue(r.Context(), UserIDContextKey, userID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

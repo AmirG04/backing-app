@@ -134,10 +134,11 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		userID       string
 		passwordHash string
 		fullName     string
+		totpEnabled  bool
 	)
 	err := h.PG.QueryRow(r.Context(),
-		`SELECT id, password_hash, full_name FROM users WHERE email = $1`, req.Email,
-	).Scan(&userID, &passwordHash, &fullName)
+		`SELECT id, password_hash, full_name, totp_enabled FROM users WHERE email = $1`, req.Email,
+	).Scan(&userID, &passwordHash, &fullName, &totpEnabled)
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "credenciales invalidas")
 		return
@@ -145,6 +146,22 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(req.Password)); err != nil {
 		writeError(w, http.StatusUnauthorized, "credenciales invalidas")
+		return
+	}
+
+	// Si el usuario activo 2FA, todavia no le damos un token de sesion -
+	// solo un token temporal de pre-autenticacion, que unicamente sirve
+	// para completar el 2FA en /api/auth/2fa/login.
+	if totpEnabled {
+		preAuthToken, err := h.generatePreAuthToken(userID)
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "error generando token")
+			return
+		}
+		writeJSON(w, http.StatusOK, models.LoginResponse{
+			RequiresTwoFactor: true,
+			PreAuthToken:      preAuthToken,
+		})
 		return
 	}
 
@@ -165,14 +182,11 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, models.AuthResponse{
-		Token: token,
-		User: models.User{
-			ID:       userID,
-			Email:    req.Email,
-			FullName: fullName,
-		},
-		Account: account,
+	user := models.User{ID: userID, Email: req.Email, FullName: fullName}
+	writeJSON(w, http.StatusOK, models.LoginResponse{
+		Token:   token,
+		User:    &user,
+		Account: &account,
 	})
 }
 
@@ -189,6 +203,21 @@ func (h *Handler) generateToken(userID string) (string, error) {
 		"sub": userID,
 		"iat": time.Now().Unix(),
 		"exp": time.Now().Add(24 * time.Hour).Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString([]byte(h.JWTSecret))
+}
+
+// generatePreAuthToken crea un token de corta duracion (5 min) que unicamente
+// sirve para completar el segundo factor en /api/auth/2fa/login. Lleva la
+// marca "purpose" para que el middleware de rutas protegidas lo rechace
+// si alguien intenta usarlo como si fuera una sesion normal.
+func (h *Handler) generatePreAuthToken(userID string) (string, error) {
+	claims := jwt.MapClaims{
+		"sub":     userID,
+		"purpose": "2fa_pending",
+		"iat":     time.Now().Unix(),
+		"exp":     time.Now().Add(5 * time.Minute).Unix(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(h.JWTSecret))

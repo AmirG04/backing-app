@@ -8,11 +8,13 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/jackc/pgx/v5 v5.5.5
 	github.com/modelcontextprotocol/go-sdk v1.7.0
+	github.com/pquerna/otp v1.5.0
 	github.com/tigerbeetle/tigerbeetle-go v0.16.78
 	golang.org/x/crypto v0.23.0
 )
 
 require (
+	github.com/boombuler/barcode v1.0.1-0.20190219062509-6c824513bacc // indirect
 	github.com/google/jsonschema-go v0.4.3 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
