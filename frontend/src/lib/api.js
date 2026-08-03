@@ -1,7 +1,18 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
 
+// sessionStorage (no localStorage) a proposito: la sesion no debe
+// sobrevivir a cerrar el navegador/pestaña ni a reiniciar la computadora.
 function getToken() {
-  return localStorage.getItem('token')
+  return sessionStorage.getItem('token')
+}
+
+function forceLogout() {
+  sessionStorage.removeItem('token')
+  sessionStorage.removeItem('user')
+  sessionStorage.removeItem('account')
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.href = '/login'
+  }
 }
 
 // tokenOverride permite mandar un token distinto al guardado en sesion
@@ -16,6 +27,13 @@ async function request(path, options = {}, tokenOverride) {
 
   const res = await fetch(`${API_URL}${path}`, { ...options, headers })
   const data = await res.json().catch(() => ({}))
+
+  // Si el token de sesion normal fue rechazado (expirado/invalido), forzamos
+  // el logout - pero NO cuando se uso un tokenOverride (ej. el 2FA), donde
+  // un 401 solo significa "codigo incorrecto", no una sesion muerta.
+  if (res.status === 401 && !tokenOverride) {
+    forceLogout()
+  }
 
   if (!res.ok) {
     throw new Error(data.error || `Error ${res.status}`)

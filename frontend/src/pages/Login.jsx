@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 
@@ -12,6 +12,14 @@ export default function Login({ mode = 'login' }) {
   const [fullName, setFullName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [infoMessage, setInfoMessage] = useState('')
+
+  useEffect(() => {
+    if (sessionStorage.getItem('logout_reason') === 'inactivity') {
+      setInfoMessage('Tu sesión se cerró automáticamente por inactividad. Inicia sesión de nuevo.')
+      sessionStorage.removeItem('logout_reason')
+    }
+  }, [])
 
   // Si el login requiere 2FA, guardamos el token temporal aqui y
   // mostramos un segundo formulario pidiendo el codigo de 6 digitos.
@@ -117,6 +125,12 @@ export default function Login({ mode = 'login' }) {
           {isRegister ? 'Crear cuenta' : 'Iniciar sesión'}
         </h1>
         <p className="text-slate-500 text-sm mb-6">Banco Simplificado</p>
+
+        {infoMessage && (
+          <div className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 mb-4">
+            {infoMessage}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {isRegister && (
