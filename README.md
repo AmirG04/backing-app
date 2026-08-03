@@ -15,6 +15,7 @@ El proyecto permite a los usuarios autenticarse, administrar una o varias cuenta
 - pgx (driver PostgreSQL)
 - JWT (golang-jwt)
 - bcrypt
+- pquerna/otp (TOTP para 2FA)
 - SDK oficial de Model Context Protocol (`modelcontextprotocol/go-sdk`)
 - OpenRouter (acceso al modelo de IA, compatible con Claude/GPT/otros)
 
@@ -142,6 +143,11 @@ docker compose run --rm -v "${PWD}/backend/testdata:/testdata" backend ./seed /t
 - Inicio de sesión
 - JWT
 - Cierre de sesión
+- **(Bonus) Autenticación en dos pasos (2FA/TOTP)** — códigos de 6 dígitos
+  compatibles con Google Authenticator/Authy. Opcional, se activa desde
+  "Seguridad" en el dashboard. Cuando está activo, el login queda en un
+  estado intermedio (token de pre-autenticación de 5 minutos, que no
+  sirve para nada más) hasta que se confirma el código.
 
 ### Cuentas
 

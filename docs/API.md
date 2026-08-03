@@ -81,7 +81,20 @@ Crea un usuario nuevo y su cuenta bancaria principal.
 { "email": "test@test.com", "password": "password123" }
 ```
 
-**Respuesta 200**: misma forma que `register` (token + user + account, con la cuenta principal del usuario).
+**Respuesta 200 — si el usuario NO tiene 2FA activo**: misma forma que
+`register` (`token` + `user` + `account`, con la cuenta principal).
+
+**Respuesta 200 — si el usuario SÍ tiene 2FA activo**: no entrega un
+token de sesión todavía, solo un token temporal de pre-autenticación:
+```json
+{
+  "requires_2fa": true,
+  "pre_auth_token": "eyJhbGciOi..."
+}
+```
+Ese `pre_auth_token` expira en 5 minutos y **solo sirve** para completar
+el segundo factor en `POST /api/auth/2fa/login` — no funciona en ningún
+otro endpoint protegido (el middleware lo rechaza explícitamente).
 
 **Errores**
 | Código | Causa |
@@ -100,6 +113,94 @@ API y como punto de extensión futuro (ej. blacklist de tokens).
 ```json
 { "message": "sesion cerrada" }
 ```
+
+---
+
+## Autenticación en dos pasos (2FA / TOTP)
+
+*(Bonus del enunciado: "Autenticación adicional")*
+
+Códigos de 6 dígitos compatibles con Google Authenticator, Authy, etc.
+2FA es **opcional** y lo activa cada usuario desde su cuenta ya logueada.
+
+### `POST /api/2fa/setup`
+*(requiere `Authorization: Bearer <token>` de sesión normal)*
+
+Genera un secreto TOTP nuevo para el usuario y lo guarda como
+"pendiente" (todavía no protege el login hasta confirmarse con
+`/api/2fa/verify`). Si se llama de nuevo antes de confirmar, reemplaza
+el secreto pendiente anterior.
+
+**Respuesta 200**
+```json
+{
+  "secret": "DZNBLWCMMQ6DXWOSBAWA3OFRLDS5XHT6",
+  "otpauth_url": "otpauth://totp/Banco%20Simplificado:test@test.com?secret=...&issuer=Banco%20Simplificado"
+}
+```
+El frontend muestra `secret` para ingresarlo manualmente en la app
+autenticadora (o `otpauth_url` como link directo en móviles).
+
+---
+
+### `POST /api/2fa/verify`
+*(requiere `Authorization: Bearer <token>` de sesión normal)*
+
+Confirma la activación con el primer código generado por la app.
+
+**Body**
+```json
+{ "code": "123456" }
+```
+
+**Respuesta 200**
+```json
+{ "message": "2FA activado correctamente" }
+```
+
+**Errores**: `400` no hay setup pendiente · `401` código inválido
+
+---
+
+### `POST /api/2fa/disable`
+*(requiere `Authorization: Bearer <token>` de sesión normal)*
+
+Requiere la contraseña actual (no solo estar logueado), ya que reduce la
+protección de la cuenta.
+
+**Body**
+```json
+{ "password": "password123" }
+```
+
+**Respuesta 200**
+```json
+{ "message": "2FA desactivado" }
+```
+
+**Errores**: `401` contraseña incorrecta
+
+---
+
+### `POST /api/auth/2fa/login`
+
+Segundo paso del login cuando el usuario tiene 2FA activo. **No usa el
+token de sesión normal** — usa el `pre_auth_token` que devolvió
+`/api/auth/login`.
+
+**Header**
+```
+Authorization: Bearer <pre_auth_token>
+```
+
+**Body**
+```json
+{ "code": "123456" }
+```
+
+**Respuesta 200**: token de sesión completo (`token` + `user` + `account`), igual que un login exitoso normal.
+
+**Errores**: `401` token de pre-autenticación inválido/expirado, o código incorrecto
 
 ---
 
@@ -128,6 +229,7 @@ varias), cada una con su saldo actual.
 
 ---
 
+
 ### `GET /api/accounts/me`
 
 Información del usuario autenticado (no de una cuenta específica).
@@ -138,6 +240,7 @@ Información del usuario autenticado (no de una cuenta específica).
   "id": "b9a13e7f-...",
   "email": "test@test.com",
   "full_name": "Usuario Test",
+  "two_factor_enabled": false,
   "created_at": "2026-08-01T21:03:12Z"
 }
 ```
