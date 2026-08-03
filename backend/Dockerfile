@@ -13,6 +13,7 @@ RUN go mod download
 
 COPY . .
 RUN CGO_ENABLED=1 GOOS=linux go build -o /banking-api ./cmd/api
+RUN CGO_ENABLED=1 GOOS=linux go build -o /seed ./cmd/seed
 
 # --- Etapa 2: imagen final ---
 FROM debian:bookworm-slim
@@ -23,6 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 COPY --from=builder /banking-api .
+COPY --from=builder /seed .
 
 EXPOSE 8080
 CMD ["./banking-api"]
