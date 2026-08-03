@@ -4,9 +4,17 @@ import { useAuth } from '../lib/auth'
 import { api } from '../lib/api'
 import ChatWidget from '../components/ChatWidget'
 
+const ACCOUNT_TYPE_LABELS = {
+  checking: 'Corriente',
+  savings: 'Ahorro',
+}
+
 export default function Dashboard() {
-  const { user, logout } = useAuth()
+  const { user, account, logout } = useAuth()
   const navigate = useNavigate()
+
+  const [accounts, setAccounts] = useState([])
+  const [selectedAccountId, setSelectedAccountId] = useState(null)
 
   const [balance, setBalance] = useState(null)
   const [recent, setRecent] = useState([])
@@ -18,11 +26,31 @@ export default function Dashboard() {
   const [actionLoading, setActionLoading] = useState(false)
   const [message, setMessage] = useState('')
 
-  async function loadData() {
+  // Carga la lista de cuentas del usuario una sola vez, y selecciona la
+  // principal (la que ya viene del login/registro) por defecto.
+  useEffect(() => {
+    api
+      .getAccounts()
+      .then((data) => {
+        const list = Array.isArray(data) ? data : []
+        setAccounts(list)
+        const defaultId = account?.id || list[0]?.id || null
+        setSelectedAccountId(defaultId)
+      })
+      .catch(() => {
+        // Si falla, seguimos con la cuenta principal que ya tenemos del login.
+        setSelectedAccountId(account?.id || null)
+      })
+  }, [])
+
+  async function loadData(accountId) {
     setLoading(true)
     setError('')
     try {
-      const [balanceData, historyData] = await Promise.all([api.getBalance(), api.history()])
+      const [balanceData, historyData] = await Promise.all([
+        api.getBalance(accountId),
+        api.history(accountId),
+      ])
       setBalance(balanceData)
       setRecent(Array.isArray(historyData) ? historyData.slice(0, 5) : [])
     } catch (err) {
@@ -33,8 +61,10 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    loadData()
-  }, [])
+    if (selectedAccountId) {
+      loadData(selectedAccountId)
+    }
+  }, [selectedAccountId])
 
   function handleLogout() {
     logout()
@@ -50,7 +80,7 @@ export default function Dashboard() {
       setMessage('Operación realizada con éxito')
       setAmount('')
       setToAccount('')
-      loadData()
+      loadData(selectedAccountId)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -78,19 +108,41 @@ export default function Dashboard() {
       <main className="max-w-5xl mx-auto px-4 py-8 grid gap-6 md:grid-cols-3">
         {/* Columna principal */}
         <div className="md:col-span-2 space-y-6">
-          {/* Tarjeta de saldo */}
+          {/* Tarjeta de saldo + selector de cuentas */}
           <div className="bg-white rounded-xl shadow p-6">
-            <p className="text-sm text-slate-500">Saldo disponible</p>
-            {loading ? (
-              <div className="h-9 w-40 bg-slate-200 rounded animate-pulse mt-2" />
-            ) : (
-              <p className="text-3xl font-bold text-slate-800 mt-1">
-                ${balance ? balance.balance.toLocaleString() : '0'}
-              </p>
-            )}
-            <p className="text-xs text-slate-400 mt-2 break-all">
-              Cuenta: {balance?.account_id || user?.tigerbeetle_account_id}
-            </p>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <p className="text-sm text-slate-500">Saldo disponible</p>
+                {loading ? (
+                  <div className="h-9 w-40 bg-slate-200 rounded animate-pulse mt-2" />
+                ) : (
+                  <p className="text-3xl font-bold text-slate-800 mt-1">
+                    ${balance ? balance.balance.toLocaleString() : '0'}
+                  </p>
+                )}
+                <p className="text-xs text-slate-400 mt-2 break-all">
+                  Cuenta: {balance?.account_number}
+                </p>
+              </div>
+
+              {accounts.length > 1 && (
+                <div className="min-w-[180px]">
+                  <label className="block text-xs text-slate-500 mb-1">Cuenta activa</label>
+                  <select
+                    value={selectedAccountId || ''}
+                    onChange={(e) => setSelectedAccountId(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {accounts.map((acc) => (
+                      <option key={acc.id} value={acc.id}>
+                        {ACCOUNT_TYPE_LABELS[acc.account_type] || acc.account_type}
+                        {acc.account_number ? ` · ${acc.account_number}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Operaciones */}
@@ -107,7 +159,7 @@ export default function Dashboard() {
               />
               <input
                 type="text"
-                placeholder="ID de cuenta destino (solo para transferencia)"
+                placeholder="Número de cuenta destino (ej. 4001-1234-5678-0001)"
                 value={toAccount}
                 onChange={(e) => setToAccount(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -116,21 +168,23 @@ export default function Dashboard() {
               <div className="flex flex-wrap gap-2">
                 <button
                   disabled={actionLoading || !amount}
-                  onClick={() => runAction(() => api.deposit(Number(amount)))}
+                  onClick={() => runAction(() => api.deposit(Number(amount), selectedAccountId))}
                   className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition"
                 >
                   Depositar
                 </button>
                 <button
                   disabled={actionLoading || !amount}
-                  onClick={() => runAction(() => api.withdraw(Number(amount)))}
+                  onClick={() => runAction(() => api.withdraw(Number(amount), selectedAccountId))}
                   className="flex-1 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition"
                 >
                   Retirar
                 </button>
                 <button
                   disabled={actionLoading || !amount || !toAccount}
-                  onClick={() => runAction(() => api.transfer(toAccount, Number(amount)))}
+                  onClick={() =>
+                    runAction(() => api.transfer(toAccount, Number(amount), selectedAccountId))
+                  }
                   className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition"
                 >
                   Transferir
@@ -192,7 +246,7 @@ export default function Dashboard() {
 
         {/* Chat con IA */}
         <div className="md:col-span-1">
-          <ChatWidget onActionCompleted={loadData} />
+          <ChatWidget onActionCompleted={() => loadData(selectedAccountId)} />
         </div>
       </main>
     </div>
