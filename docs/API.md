@@ -229,6 +229,24 @@ varias), cada una con su saldo actual.
 
 ---
 
+### `POST /api/accounts`
+
+Crea una cuenta bancaria adicional para el usuario autenticado (ya
+tiene una desde el registro; puede abrir más, ej. una de ahorro además
+de la corriente).
+
+**Body** (opcional; por defecto `checking`/`USD`)
+```json
+{ "account_type": "savings", "currency": "USD" }
+```
+`account_type` debe ser `"checking"` o `"savings"`.
+
+**Respuesta 201**: un objeto `Account`, igual al de `GET /api/accounts` (sin `balance`, ya que arranca en 0).
+
+**Errores**: `400` account_type inválido
+
+---
+
 
 ### `GET /api/accounts/me`
 
@@ -356,8 +374,18 @@ que expone las mismas operaciones que los endpoints REST de arriba.
 
 **Body**
 ```json
-{ "message": "¿cuánto dinero tengo?" }
+{
+  "message": "¿cuánto dinero tengo?",
+  "history": [
+    { "role": "user", "content": "hola" },
+    { "role": "assistant", "content": "¡Hola! ¿En qué te ayudo?" }
+  ]
+}
 ```
+`history` es opcional: turnos previos de la conversación (solo texto,
+sin detalles de herramientas), para que el modelo tenga contexto de lo
+ya hablado. El frontend lo arma automáticamente con los mensajes que
+ya se ven en pantalla; el backend limita a los últimos 12 turnos.
 
 **Respuesta 200**
 ```json
@@ -376,7 +404,10 @@ que expone las mismas operaciones que los endpoints REST de arriba.
 1. Usuario: `"retira 50"` → respuesta con `requires_confirmation: true`, pidiendo confirmar.
 2. Usuario: `"sí"` → respuesta con `action_executed: true`, el retiro ya se ejecutó.
 
-Nota: el chat opera siempre sobre la cuenta principal del usuario (no
-respeta el selector de cuenta del dashboard si el usuario tiene varias).
+**Múltiples cuentas:** si el usuario tiene más de una cuenta y no
+especifica sobre cuál operar, el chat pregunta cuál usar (mencionando
+número y tipo) en vez de adivinar - tanto para consultas como para
+operaciones críticas, donde la cuenta se resuelve *antes* de pedir
+confirmación.
 
 **Errores**: `400` mensaje vacío · `500` error consultando el modelo de IA (incluye cuando falta `OPENROUTER_API_KEY`)

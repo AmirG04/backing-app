@@ -148,6 +148,12 @@ docker compose run --rm -v "${PWD}/backend/testdata:/testdata" backend ./seed /t
   "Seguridad" en el dashboard. Cuando está activo, el login queda en un
   estado intermedio (token de pre-autenticación de 5 minutos, que no
   sirve para nada más) hasta que se confirma el código.
+- **Manejo de sesión**: el token se guarda en `sessionStorage` (no
+  `localStorage`), así que la sesión **no sobrevive** a cerrar el
+  navegador o reiniciar la computadora. Además, la sesión se cierra
+  automáticamente tras **15 minutos de inactividad** (sin movimiento de
+  mouse, teclado, clics o scroll). El JWT del backend también expira a
+  las 24h como límite de respaldo.
 
 ### Cuentas
 
