@@ -26,7 +26,7 @@ export default function History() {
   return (
     <div className="min-h-screen bg-slate-100">
       <header className="bg-white border-b border-slate-200">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-4">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-4">
           <Link to="/dashboard" className="text-sm text-blue-600 font-medium">
             ← Volver
           </Link>
@@ -34,7 +34,7 @@ export default function History() {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-8">
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-xl shadow p-6">
           {loading ? (
             <p className="text-sm text-slate-400">Cargando...</p>

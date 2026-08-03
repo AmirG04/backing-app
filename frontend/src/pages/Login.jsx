@@ -66,7 +66,7 @@ export default function Login({ mode = 'login' }) {
   // --- Paso 2: pedir el codigo de 6 digitos (solo si el login lo requirio) ---
   if (pendingPreAuthToken) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-sm bg-white rounded-xl shadow p-8">
           <h1 className="text-2xl font-bold text-slate-800 mb-1">Verificación en dos pasos</h1>
           <p className="text-slate-500 text-sm mb-6">
@@ -119,7 +119,7 @@ export default function Login({ mode = 'login' }) {
 
   // --- Paso 1: login/registro normal ---
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-sm bg-white rounded-xl shadow p-8">
         <h1 className="text-2xl font-bold text-slate-800 mb-1">
           {isRegister ? 'Crear cuenta' : 'Iniciar sesión'}

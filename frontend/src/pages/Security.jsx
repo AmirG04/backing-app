@@ -71,7 +71,7 @@ export default function Security() {
   return (
     <div className="min-h-screen bg-slate-100">
       <header className="bg-white border-b border-slate-200">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-4">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-4 flex items-center gap-4">
           <Link to="/dashboard" className="text-sm text-blue-600 font-medium">
             ← Volver
           </Link>
@@ -79,7 +79,7 @@ export default function Security() {
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-8">
+      <main className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-xl shadow p-6">
           <h2 className="font-semibold text-slate-800 mb-1">
             Autenticación en dos pasos (2FA)
@@ -138,7 +138,7 @@ export default function Security() {
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
                   className="w-full text-center text-2xl tracking-[0.5em] rounded-lg border border-slate-300 px-3 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <button
                     type="submit"
                     disabled={code.length !== 6}
@@ -186,7 +186,7 @@ export default function Security() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <button
                       type="submit"
                       className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 rounded-lg transition"

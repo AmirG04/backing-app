@@ -230,6 +230,8 @@ export default function Dashboard() {
             <div className="space-y-3">
               <input
                 type="number"
+                min="1"
+                step="1"
                 placeholder="Monto"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
@@ -245,21 +247,21 @@ export default function Dashboard() {
 
               <div className="flex flex-wrap gap-2">
                 <button
-                  disabled={actionLoading || !amount}
+                  disabled={actionLoading || !amount || Number(amount) <= 0}
                   onClick={() => runAction(() => api.deposit(Number(amount), selectedAccountId))}
                   className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition"
                 >
                   Depositar
                 </button>
                 <button
-                  disabled={actionLoading || !amount}
+                  disabled={actionLoading || !amount || Number(amount) <= 0}
                   onClick={() => runAction(() => api.withdraw(Number(amount), selectedAccountId))}
                   className="flex-1 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-sm font-medium py-2 rounded-lg transition"
                 >
                   Retirar
                 </button>
                 <button
-                  disabled={actionLoading || !amount || !toAccount}
+                  disabled={actionLoading || !amount || Number(amount) <= 0 || !toAccount}
                   onClick={() =>
                     runAction(() => api.transfer(toAccount, Number(amount), selectedAccountId))
                   }
