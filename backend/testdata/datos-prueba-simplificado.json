@@ -1,6 +1,13 @@
 {
   "users": [
     {
+      "id": "d12f6554-2c5e-4b07-afb1-be56ce7453aa",
+      "email": "paulamolina@mail.com",
+      "password": "Paula2024!",
+      "full_name": "Paula Molina Ruiz",
+      "created_at": "2023-10-28T10:09:27Z"
+    },
+    {
       "id": "292d3f0e-8087-43e0-86e0-6b7cbe3a0c86",
       "email": "ihernandez@email.com",
       "password": "Isabel2024!",
@@ -13,13 +20,6 @@
       "password": "Miguel2024!",
       "full_name": "Miguel Jiménez Molina",
       "created_at": "2023-09-17T07:54:07Z"
-    },
-    {
-      "id": "d12f6554-2c5e-4b07-afb1-be56ce7453aa",
-      "email": "paulamolina@mail.com",
-      "password": "Paula2024!",
-      "full_name": "Paula Molina Ruiz",
-      "created_at": "2023-10-28T10:09:27Z"
     },
     {
       "id": "8d31d881-5d0a-4552-9849-722c64fd41d6",
@@ -73,6 +73,20 @@
   ],
   "accounts": [
     {
+      "account_number": "4001-4271-7471-0003",
+      "user_id": "d12f6554-2c5e-4b07-afb1-be56ce7453aa",
+      "initial_balance": 45172.75,
+      "currency": "USD",
+      "account_type": "checking"
+    },
+    {
+      "account_number": "4001-3064-7364-0004",
+      "user_id": "d12f6554-2c5e-4b07-afb1-be56ce7453aa",
+      "initial_balance": 3552.13,
+      "currency": "USD",
+      "account_type": "savings"
+    },
+    {
       "account_number": "4001-6588-5247-0001",
       "user_id": "292d3f0e-8087-43e0-86e0-6b7cbe3a0c86",
       "initial_balance": 32354.53,
@@ -85,13 +99,6 @@
       "initial_balance": 17509.23,
       "currency": "USD",
       "account_type": "savings"
-    },
-    {
-      "account_number": "4001-4271-7471-0003",
-      "user_id": "d12f6554-2c5e-4b07-afb1-be56ce7453aa",
-      "initial_balance": 45172.75,
-      "currency": "USD",
-      "account_type": "checking"
     },
     {
       "account_number": "4001-3262-1708-0005",
@@ -218,6 +225,15 @@
     },
     {
       "from_account": "4001-4271-7471-0003",
+      "to_account": "4001-3064-7364-0004",
+      "amount": 1560.18,
+      "type": "internal_transfer",
+      "description": "Transferencia entre cuentas propias",
+      "timestamp": "2023-12-30T08:50:19Z",
+      "status": "completed"
+    },
+    {
+      "from_account": "4001-4271-7471-0003",
       "to_account": "EXTERNAL",
       "amount": 2680.81,
       "type": "withdrawal",
@@ -262,6 +278,15 @@
       "status": "completed"
     },
     {
+      "from_account": "4001-3064-7364-0004",
+      "to_account": "EXTERNAL",
+      "amount": 1365.84,
+      "type": "withdrawal",
+      "description": "Pago de tarjeta de crédito",
+      "timestamp": "2024-03-28T09:38:06Z",
+      "status": "completed"
+    },
+    {
       "from_account": "EXTERNAL",
       "to_account": "4001-6271-7802-0016",
       "amount": 581.86,
@@ -272,11 +297,38 @@
     },
     {
       "from_account": "EXTERNAL",
+      "to_account": "4001-3064-7364-0004",
+      "amount": 4049.88,
+      "type": "deposit",
+      "description": "Ingreso por alquiler",
+      "timestamp": "2024-06-10T01:20:06Z",
+      "status": "completed"
+    },
+    {
+      "from_account": "EXTERNAL",
       "to_account": "4001-4271-7471-0003",
       "amount": 531.18,
       "type": "deposit",
       "description": "Ingreso extraordinario",
       "timestamp": "2024-06-28T07:33:51Z",
+      "status": "completed"
+    },
+    {
+      "from_account": "4001-9944-7218-0006",
+      "to_account": "EXTERNAL",
+      "amount": 2606.18,
+      "type": "withdrawal",
+      "description": "Mantenimiento vehículo",
+      "timestamp": "2024-07-11T20:30:10Z",
+      "status": "completed"
+    },
+    {
+      "from_account": "4001-3064-7364-0004",
+      "to_account": "EXTERNAL",
+      "amount": 3463.61,
+      "type": "withdrawal",
+      "description": "Gastos varios",
+      "timestamp": "2024-07-12T21:19:56Z",
       "status": "completed"
     }
   ]
