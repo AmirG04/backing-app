@@ -43,6 +43,8 @@ export const api = {
   logout: () => request('/api/auth/logout', { method: 'POST' }),
   getAccountInfo: () => request('/api/accounts/me'),
   getAccounts: () => request('/api/accounts'),
+  createAccount: (accountType) =>
+    request('/api/accounts', { method: 'POST', body: JSON.stringify({ account_type: accountType }) }),
   getBalance: (accountId) => request(withAccount('/api/accounts/balance', accountId)),
   deposit: (amount, accountId) =>
     request(withAccount('/api/transactions/deposit', accountId), {

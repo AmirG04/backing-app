@@ -1,11 +1,15 @@
 package handlers
 
 import (
+	"encoding/json"
+	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	tbtypes "github.com/tigerbeetle/tigerbeetle-go/pkg/types"
 
+	"banking-app/backend/internal/db"
 	"banking-app/backend/internal/middleware"
 	"banking-app/backend/internal/models"
 )
@@ -79,6 +83,75 @@ func (h *Handler) GetAccountInfo(w http.ResponseWriter, r *http.Request) {
 		FullName:         fullName,
 		CreatedAt:        createdAt,
 		TwoFactorEnabled: totpEnabled,
+	})
+}
+
+var validAccountTypes = map[string]bool{"checking": true, "savings": true}
+
+// POST /api/accounts
+// Crea una cuenta bancaria adicional para el usuario autenticado (un
+// usuario ya puede tener una - creada al registrarse - y puede crear
+// mas, ej. una de ahorro ademas de la corriente).
+func (h *Handler) CreateAccount(w http.ResponseWriter, r *http.Request) {
+	userID, _ := middleware.UserIDFromContext(r.Context())
+
+	var req models.CreateAccountRequest
+	_ = json.NewDecoder(r.Body).Decode(&req) // body es opcional, defaults abajo
+
+	accountType := strings.ToLower(strings.TrimSpace(req.AccountType))
+	if accountType == "" {
+		accountType = "checking"
+	}
+	if !validAccountTypes[accountType] {
+		writeError(w, http.StatusBadRequest, "account_type debe ser 'checking' o 'savings'")
+		return
+	}
+
+	currency := strings.ToUpper(strings.TrimSpace(req.Currency))
+	if currency == "" {
+		currency = "USD"
+	}
+
+	tbAccountID, err := h.TB.CreateUserAccount()
+	if err != nil {
+		log.Printf("error creando cuenta tigerbeetle: %v", err)
+		writeError(w, http.StatusInternalServerError, "error creando cuenta bancaria")
+		return
+	}
+
+	var accountID, accountNumber string
+	var createdAt time.Time
+	const maxAttempts = 5
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		accountNumber, err = db.GenerateAccountNumber()
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "error generando numero de cuenta")
+			return
+		}
+
+		err = h.PG.QueryRow(r.Context(),
+			`INSERT INTO accounts (user_id, tigerbeetle_account_id, account_number, account_type, currency)
+			 VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at`,
+			userID, tbAccountID.String(), accountNumber, accountType, currency,
+		).Scan(&accountID, &createdAt)
+		if err == nil {
+			break
+		}
+		if !strings.Contains(err.Error(), "duplicate key") || attempt == maxAttempts {
+			log.Printf("error creando cuenta en postgres: %v", err)
+			writeError(w, http.StatusInternalServerError, "error creando cuenta")
+			return
+		}
+		// numero de cuenta duplicado (muy raro) - reintenta con uno nuevo
+	}
+
+	writeJSON(w, http.StatusCreated, models.Account{
+		ID:                   accountID,
+		TigerBeetleAccountID: tbAccountID.String(),
+		AccountNumber:        accountNumber,
+		AccountType:          accountType,
+		Currency:             currency,
+		CreatedAt:            createdAt,
 	})
 }
 

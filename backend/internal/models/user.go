@@ -23,6 +23,13 @@ type Account struct {
 	CreatedAt             time.Time `json:"created_at"`
 }
 
+// CreateAccountRequest son los datos opcionales al crear una cuenta
+// adicional. Si se omiten, se usa checking/USD por defecto.
+type CreateAccountRequest struct {
+	AccountType string `json:"account_type"`
+	Currency    string `json:"currency"`
+}
+
 type RegisterRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`

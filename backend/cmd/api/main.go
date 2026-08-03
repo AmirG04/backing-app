@@ -74,6 +74,7 @@ func main() {
 		r.Use(appmiddleware.Auth(cfg.JWTSecret))
 
 		r.Get("/accounts", h.GetAccounts)
+		r.Post("/accounts", h.CreateAccount)
 		r.Get("/accounts/me", h.GetAccountInfo)
 		r.Get("/accounts/balance", h.GetBalance)
 

@@ -26,21 +26,39 @@ export default function Dashboard() {
   const [actionLoading, setActionLoading] = useState(false)
   const [message, setMessage] = useState('')
 
-  // Carga la lista de cuentas del usuario una sola vez, y selecciona la
-  // principal (la que ya viene del login/registro) por defecto.
+  // El mensaje de exito desaparece solo despues de unos segundos, en vez
+  // de quedarse pegado hasta la siguiente accion.
   useEffect(() => {
-    api
-      .getAccounts()
-      .then((data) => {
-        const list = Array.isArray(data) ? data : []
-        setAccounts(list)
+    if (!message) return
+    const timer = setTimeout(() => setMessage(''), 4000)
+    return () => clearTimeout(timer)
+  }, [message])
+
+  const [showCreateAccount, setShowCreateAccount] = useState(false)
+  const [newAccountType, setNewAccountType] = useState('checking')
+  const [creatingAccount, setCreatingAccount] = useState(false)
+
+  // Carga la lista de cuentas del usuario. keepSelection=true evita
+  // cambiar la cuenta activa si ya habia una elegida (ej. al refrescar
+  // despues de crear una cuenta nueva).
+  async function refreshAccounts(keepSelection) {
+    try {
+      const data = await api.getAccounts()
+      const list = Array.isArray(data) ? data : []
+      setAccounts(list)
+      if (!keepSelection || !selectedAccountId) {
         const defaultId = account?.id || list[0]?.id || null
         setSelectedAccountId(defaultId)
-      })
-      .catch(() => {
-        // Si falla, seguimos con la cuenta principal que ya tenemos del login.
-        setSelectedAccountId(account?.id || null)
-      })
+      }
+      return list
+    } catch {
+      setSelectedAccountId((prev) => prev || account?.id || null)
+      return []
+    }
+  }
+
+  useEffect(() => {
+    refreshAccounts(false)
   }, [])
 
   async function loadData(accountId) {
@@ -69,6 +87,24 @@ export default function Dashboard() {
   function handleLogout() {
     logout()
     navigate('/login')
+  }
+
+  async function handleCreateAccount(e) {
+    e.preventDefault()
+    setError('')
+    setMessage('')
+    setCreatingAccount(true)
+    try {
+      const created = await api.createAccount(newAccountType)
+      await refreshAccounts(true)
+      setSelectedAccountId(created.id)
+      setShowCreateAccount(false)
+      setMessage(`Cuenta ${ACCOUNT_TYPE_LABELS[newAccountType] || newAccountType} creada: ${created.account_number}`)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setCreatingAccount(false)
+    }
   }
 
   async function runAction(fn) {
@@ -148,6 +184,43 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+
+            {!showCreateAccount ? (
+              <button
+                onClick={() => setShowCreateAccount(true)}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium mt-4"
+              >
+                + Abrir una cuenta nueva
+              </button>
+            ) : (
+              <form onSubmit={handleCreateAccount} className="mt-4 flex flex-wrap items-end gap-2">
+                <div>
+                  <label className="block text-xs text-slate-500 mb-1">Tipo de cuenta</label>
+                  <select
+                    value={newAccountType}
+                    onChange={(e) => setNewAccountType(e.target.value)}
+                    className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="checking">Corriente</option>
+                    <option value="savings">Ahorro</option>
+                  </select>
+                </div>
+                <button
+                  type="submit"
+                  disabled={creatingAccount}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition"
+                >
+                  {creatingAccount ? 'Creando...' : 'Crear cuenta'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateAccount(false)}
+                  className="text-sm text-slate-500 hover:text-slate-700 px-2 py-1.5"
+                >
+                  Cancelar
+                </button>
+              </form>
+            )}
           </div>
 
           {/* Operaciones */}
